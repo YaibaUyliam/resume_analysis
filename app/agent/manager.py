@@ -1,6 +1,6 @@
 import os
 
-from .providers.base import Provider
+from .providers.base import ExtractionProvider
 from ..core import settings
 
 
@@ -11,19 +11,14 @@ class GenerationManager:
         self.model_path = settings.LL_MODEL_CKPT_PATH
         self.torch_dtype = settings.TORCH_DTYPE
 
-        self._init_model()
-
-    async def _init_model(self) -> Provider:
+    async def init_model(self) -> ExtractionProvider:
         otps = {}
 
         if self.model_provider == "ollama":
             from .providers import OllamaExtractionProvider
 
-            self.model = OllamaExtractionProvider(model_name=self.model_name, opts=otps)
+            return OllamaExtractionProvider(model_name=self.model_name, opts=otps)
         else:
             from .providers import TorchExtractionProvider
 
-            self.model = TorchExtractionProvider(self.model_path, self.torch_dtype)
-
-    async def __call__(self, *args, **kwds):
-        return self.model
+            return TorchExtractionProvider(self.model_path, self.torch_dtype)

@@ -18,3 +18,7 @@ run-dev:
 	@echo "🚀 Starting development server…"
 	@bash -c 'trap "echo "\n🛑 Development server stopped"; exit 0" SIGINT; \
 	uv run uvicorn app.main:app --reload --port 8000 --timeout-keep-alive 300 --timeout-graceful-shutdown 300'
+
+run:
+	@echo "🚀 Starting development server…"
+	@bash -c 'uvicorn app.main:app --port 8000'

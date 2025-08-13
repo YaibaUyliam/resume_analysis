@@ -43,7 +43,12 @@ info "Setting up backend"
 (
   info "Syncing Python deps via uv…"
   uv sync
+  source .venv/bin/activate
   uv pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu128
+  uv pip install transformers==4.53.3
+  uv pip install accelerate
+  uv pip install wheel
+  uv pip install flash-attn --no-build-isolation
   success "Backend dependencies ready."
 
   # The Ollama provider automatically pulls models on demand, but it's preferable to do it at setup time.

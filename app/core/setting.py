@@ -1,6 +1,11 @@
 import os
-from typing import List, Optional
 
+from typing import Optional
+from dotenv import load_dotenv
+
+
+if os.environ.get("ENV") != "production":
+    load_dotenv("/home/yaiba/project/resume_analysis/.env")
 
 class Settings:
     # which is copied to the user's .env file upon setup.

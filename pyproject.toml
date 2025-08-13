@@ -60,7 +60,7 @@ dependencies = [
     "urllib3==2.4.0",
     "uvicorn==0.34.0",
     "pdf2image",
-    "transformers==4.53.3",
+    "wheel==0.45.1",
 ]
 
 [build-system]

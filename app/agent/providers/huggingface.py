@@ -89,21 +89,21 @@ class TorchExtractionProvider:
     def __init__(self, model_path: str, torch_dtype: str):
         logger.info("Running model with HugingFace ........")
 
-        try:
-            self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-                model_path,
-                torch_dtype=torch_dtype,
-                attn_implementation="flash_attention_2",
-                device_map="auto",
-            )
-        except:
-            logger.warning("flash_attention_2 is not used !!!")
+        # try:
+        self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            model_path,
+            torch_dtype=torch_dtype,
+            attn_implementation="flash_attention_2",
+            device_map="auto",
+        )
+        # except:
+        #     logger.warning("flash_attention_2 is not used !!!")
 
-            self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-                model_path,
-                torch_dtype=torch_dtype,
-                device_map="auto",
-            )
+        #     self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+        #         model_path,
+        #         torch_dtype=torch_dtype,
+        #         device_map="auto",
+        #     )
 
         min_pixels = 256 * 28 * 28
         max_pixels = 1280 * 28 * 28

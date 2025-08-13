@@ -5,3 +5,4 @@ uv.lock
 *.pyc
 
 ckpts/
+__pycache__/

@@ -12,7 +12,8 @@ from .api import health_check, router_func
 async def lifespan(app: FastAPI):
     # load all model
     # if use ollama, only create client, server already started
-    app.state.model_gen = GenerationManager()
+    generation_manager = GenerationManager()
+    app.state.model_gen = await generation_manager.init_model()
     yield
 
 
