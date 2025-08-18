@@ -1,0 +1,1 @@
+from .resume_extract import PROMPT

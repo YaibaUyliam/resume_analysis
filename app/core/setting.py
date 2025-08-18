@@ -16,6 +16,7 @@ class Settings:
     LL_MODEL: str = os.environ.get("LL_MODEL")
     LL_MODEL_CKPT_PATH: Optional[str] = os.environ.get("LL_MODEL_CKPT_PATH")
     TORCH_DTYPE: Optional[str] = os.environ.get("TORCH_DTYPE")
+    USE_VISION: Optional[int] = os.environ.get("USE_VISION", 0)
 
     EMBEDDING_PROVIDER: str = os.environ.get("EMBEDDING_PROVIDER")
     EMBEDDING_MODEL: str = os.environ.get("EMBEDDING_MODEL")

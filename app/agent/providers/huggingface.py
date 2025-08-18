@@ -2,6 +2,7 @@ import logging
 from io import BytesIO
 import base64
 import re
+import tempfile
 
 from transformers import (
     AutoProcessor,
@@ -10,8 +11,11 @@ from transformers import (
 from pdf2image import convert_from_bytes
 from PIL import Image
 from fastapi.concurrency import run_in_threadpool
+from typing import Optional
+from markitdown import MarkItDown
 
 from .qwen_vl_utils import process_vision_info
+from .prompt import PROMPT
 
 
 logger = logging.getLogger(__name__)
@@ -44,17 +48,16 @@ def convert_pdf_to_img_base64(pdf_bytes: bytes) -> list[str]:
     return base64_imgs
 
 
-def create_chat_template(base64_imgs: str, promtp: str):
-    if not base64_imgs:
-        logger.error("Not get base64 images")
-        return None
-
+def create_chat_template(data_convert: str | list[str], promtp: str):
     messages = []
     content = []
 
-    for base64_img in base64_imgs:
-        content.append({"image_url": f"data:image/jpeg;base64,{base64_img}"})
-        # content.append({"image": f"file://{q[0]}"})
+    if isinstance(data_convert, list):
+        for base64_img in data_convert:
+            content.append({"image_url": f"data:image/jpeg;base64,{base64_img}"})
+    else:
+        content.append({"text": data_convert})
+        logger.info(content)
 
     content.append({"text": promtp})
     messages.append({"role": "user", "content": content})
@@ -86,24 +89,23 @@ def _transform_messages(original_messages):
 
 
 class TorchExtractionProvider:
-    def __init__(self, model_path: str, torch_dtype: str):
+    def __init__(self, model_path: str, torch_dtype: str, use_vision: int):
         logger.info("Running model with HugingFace ........")
 
+        max_memory = {
+            0: "14GiB",  # GPU 0 cho phép dùng nhiều hơn
+            1: "3GiB"   # GPU 1 ít hơn
+        }
         # try:
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             model_path,
             torch_dtype=torch_dtype,
             attn_implementation="flash_attention_2",
-            device_map="auto",
-        )
-        # except:
-        #     logger.warning("flash_attention_2 is not used !!!")
-
-        #     self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        #         model_path,
-        #         torch_dtype=torch_dtype,
-        #         device_map="auto",
-        #     )
+            # attn_implementation="eager",
+            device_map="cuda:0",
+            # device_map="auto",
+            # max_memory=max_memory
+        ).eval()
 
         min_pixels = 256 * 28 * 28
         max_pixels = 1280 * 28 * 28
@@ -111,15 +113,29 @@ class TorchExtractionProvider:
             model_path, min_pixels=min_pixels, max_pixels=max_pixels
         )
 
+        if use_vision == 1:
+            logger.info("Use model vision to extract images")
+            self.use_vision = True
+        else:
+            self.use_vision = False
+            self.md = MarkItDown(enable_plugins=False)
+
         logger.info("Model and processor loaded!")
 
-    def _preprocess_data(self, resume_data: bytes, prompt: str):
-        imgs = convert_pdf_to_img_base64(resume_data)
+    def _preprocess_data(self, resume_data: bytes, prompt: Optional[str] = None):
+        if self.use_vision:
+            data_convert = convert_pdf_to_img_base64(resume_data)
 
-        logger.info(len(imgs))
+        else:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+                temp_file.write(resume_data)
+                temp_path = temp_file.name
 
-        messages = create_chat_template(imgs, prompt)
-        # if messages:
+            data_convert = self.md.convert(temp_path).text_content
+
+        logger.info(len(data_convert))
+
+        messages = create_chat_template(data_convert, prompt)
         messages = _transform_messages(messages)
 
         text = self.processor.apply_chat_template(
@@ -136,7 +152,10 @@ class TorchExtractionProvider:
 
         return inputs
 
-    def _predict(self, resume_data: bytes, prompt: str):
+    def _predict(self, resume_data: bytes, prompt: Optional[str] = None):
+        if not prompt:
+            prompt = PROMPT
+
         resume_data_processed = self._preprocess_data(resume_data, prompt)
 
         inputs = resume_data_processed.to(self.model.device)
@@ -160,6 +179,6 @@ class TorchExtractionProvider:
 
         return output_text
 
-    async def __call__(self, resume_data: bytes, prompt: str):
+    async def __call__(self, resume_data: bytes, prompt: Optional[str] = None):
         res = await run_in_threadpool(self._predict, resume_data, prompt)
         return res[0]

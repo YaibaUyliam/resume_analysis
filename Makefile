@@ -21,4 +21,4 @@ run-dev:
 
 run:
 	@echo "🚀 Starting development server…"
-	@bash -c 'uvicorn app.main:app --port 8000'
+	@bash -c 'uv run uvicorn app.main:app --port 8000'

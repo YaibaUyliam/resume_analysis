@@ -5,8 +5,9 @@ from io import BytesIO
 import base64
 import json
 
-from fastapi import APIRouter, UploadFile, HTTPException, Request
+from fastapi import APIRouter, UploadFile, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from typing import Optional
 
 from pdf2image import convert_from_bytes
 
@@ -32,7 +33,9 @@ def convert_pdf_to_img_base64(pdf_bytes: bytes) -> list[str]:
 
 
 @resume_extract_router.post("/extract")
-async def extract(request: Request, cv_file: UploadFile):
+async def extract(
+    request: Request, cv_file: UploadFile, prompt_file: Optional[UploadFile] = None
+):
     """
     Receive a PDF or any file via multipart/form-data and return important information in file.
 
@@ -44,18 +47,30 @@ async def extract(request: Request, cv_file: UploadFile):
     """
 
     contents = await cv_file.read()
+    if not contents or ".pdf" not in cv_file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file. Please upload a valid file.",
+        )
+
     logger.info(cv_file.filename)
+
+    prompt = None
+    if prompt_file:
+        logger.info("Receive prompt from user")
+        prompt = await prompt_file.read()
 
     try:
         if cv_file.filename.endswith(".pdf"):
-            response = request.app.state.model_gen(contents)
+            response = await request.app.state.model_gen(contents, prompt)
+            logger.info(response)
 
-        return JSONResponse(
-            content={
-                "filename": cv_file.filename,
-                "info_extract": json.loads(response),
-            }
-        )
+            return JSONResponse(
+                content={
+                    "filename": cv_file.filename,
+                    "info_extract": json.loads(response),
+                }
+            )
 
     except Exception as e:
         logger.error(traceback.format_exc())

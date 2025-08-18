@@ -28,6 +28,9 @@ class OllamaExtractionProvider(ExtractionProvider):
         ]
         if model_name not in installed_ollama_models:
             raise GenerationError("Model has not installed !!!")
+    
+    def _preprocess_data(self, resume_data: bytes, prompt: Optional[str]=None):
+        pass
 
     def _generate_sync(self, prompt: str, options: Dict[str, Any]) -> str:
         """
@@ -43,11 +46,8 @@ class OllamaExtractionProvider(ExtractionProvider):
         except Exception as e:
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
 
-    async def __call__(self, prompt: str, **generation_args: Any) -> str:
-        if generation_args:
-            logger.warning(f"OllamaProvider ignoring generation_args {generation_args}")
-        myopts = self.opts  # Ollama can handle all the options manager.py passes in.
-        return await run_in_threadpool(self._generate_sync, prompt, myopts)
+    async def __call__(self, resume_data: bytes, prompt: Optional[str]=None) -> str:
+        return await run_in_threadpool(self._generate_sync, resume_data, prompt)
 
 
 # class OllamaEmbeddingProvider(EmbeddingProvider):

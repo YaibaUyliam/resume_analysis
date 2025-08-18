@@ -10,6 +10,7 @@ class GenerationManager:
         self.model_name = settings.LL_MODEL
         self.model_path = settings.LL_MODEL_CKPT_PATH
         self.torch_dtype = settings.TORCH_DTYPE
+        self.use_vision = settings.USE_VISION
 
     async def init_model(self) -> ExtractionProvider:
         otps = {}
@@ -21,4 +22,4 @@ class GenerationManager:
         else:
             from .providers import TorchExtractionProvider
 
-            return TorchExtractionProvider(self.model_path, self.torch_dtype)
+            return TorchExtractionProvider(self.model_path, self.torch_dtype, self.use_vision)
