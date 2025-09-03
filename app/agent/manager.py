@@ -18,7 +18,7 @@ class GenerationManager:
         if self.model_provider == "ollama":
             from .providers import OllamaExtractionProvider
 
-            return OllamaExtractionProvider(model_name=self.model_name, opts=otps)
+            return OllamaExtractionProvider(self.model_name, self.use_vision)
         else:
             from .providers import TorchExtractionProvider
 

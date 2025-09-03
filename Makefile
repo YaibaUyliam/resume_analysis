@@ -17,8 +17,8 @@ setup:
 run-dev:
 	@echo "🚀 Starting development server…"
 	@bash -c 'trap "echo "\n🛑 Development server stopped"; exit 0" SIGINT; \
-	uv run uvicorn app.main:app --reload --port 8000 --timeout-keep-alive 300 --timeout-graceful-shutdown 300'
+	uv run uvicorn app.main:app --reload --port 9001 --timeout-keep-alive 300 --timeout-graceful-shutdown 300'
 
 run:
 	@echo "🚀 Starting development server…"
-	@bash -c 'uv run uvicorn app.main:app --port 8000'
+	@bash -c 'uv run uvicorn app.main:app --port 9001'

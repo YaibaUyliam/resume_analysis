@@ -13,12 +13,12 @@ from io import BytesIO
 from typing import Optional
 
 import requests
-import torch
-import torchvision
+# import torch
+# import torchvision
 from packaging import version
 from PIL import Image
-from torchvision import io, transforms
-from torchvision.transforms import InterpolationMode
+# from torchvision import io, transforms
+# from torchvision.transforms import InterpolationMode
 
 
 logger = logging.getLogger(__name__)

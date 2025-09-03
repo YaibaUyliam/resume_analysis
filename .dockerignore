@@ -1,0 +1,10 @@
+.venv/
+data/
+
+ckpts/
+docs/
+
+uv.lock
+.git/
+*.pyc
+__pycache__/

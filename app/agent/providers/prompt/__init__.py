@@ -1,1 +1,1 @@
-from .resume_extract import PROMPT
+from .resume_extract import PROMPT, SYSTEM

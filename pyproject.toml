@@ -32,7 +32,7 @@ dependencies = [
     "magika==0.6.1",
     "Markdown==3.8",
     "markdownify==1.1.0",
-    "markitdown==0.1.1",
+    "markitdown[all]==0.1.1",
     "mpmath==1.3.0",
     "numpy==2.2.4",
     "ollama==0.5.3",
@@ -61,6 +61,7 @@ dependencies = [
     "uvicorn==0.34.0",
     "pdf2image",
     "wheel==0.45.1",
+    "transformers==4.53.3"
 ]
 
 [build-system]
