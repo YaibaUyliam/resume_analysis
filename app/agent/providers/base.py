@@ -60,6 +60,7 @@ class ExtractionProvider(ABC):
         else:
             with tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix) as temp_file:
                 temp_file.write(resume_data)
+                temp_file.flush()
                 temp_path = temp_file.name
 
             return self.md.convert(temp_path).text_content

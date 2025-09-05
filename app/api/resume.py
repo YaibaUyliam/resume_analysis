@@ -4,6 +4,7 @@ from PIL import Image
 from io import BytesIO
 import base64
 import json
+import requests
 
 from fastapi import APIRouter, UploadFile, HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -45,7 +46,9 @@ def save_results(response, filename):
 
 @resume_extract_router.post("/extract")
 async def extract(
-    request: Request, cv_file: UploadFile, prompt_file: Optional[UploadFile] = None
+    request: Request,
+    cv_file: UploadFile | str,
+    prompt_file: Optional[UploadFile] = None,
 ):
     """
     Receive a PDF or any file via multipart/form-data and return important information in file.
@@ -57,7 +60,12 @@ async def extract(
         JSON response confirming receipt and showing filename.
     """
 
-    contents = await cv_file.read()
+    if isinstance(cv_file, UploadFile):
+        contents = await cv_file.read()
+    else:
+        contents = requests.get(cv_file)
+        contents.raise_for_status()
+
     if not contents or not cv_file.filename.endswith((".pdf", ".docx", ".doc")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,7 +91,7 @@ async def extract(
         return JSONResponse(
             content={
                 "filename": filename,
-                "info_extract": json.loads(response),
+                "info_extract": response,
             }
         )
 

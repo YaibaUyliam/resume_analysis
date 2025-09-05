@@ -1,3 +1,5 @@
+import json
+
 import logging
 import ollama
 
@@ -17,7 +19,7 @@ class OllamaExtractionProvider(ExtractionProvider):
         logger.info("Running model with Ollama ........")
         super().__init__(use_vision)
 
-        self.otps = {"temperature": 0, "num_ctx": 12000, "num_predict": -1} # 16384
+        self.otps = {"temperature": 0, "num_ctx": 12000, "num_predict": -1}  # 16384
         self.model = model_name
         self._client = ollama.Client(host=host) if host else ollama.Client()
 
@@ -33,6 +35,18 @@ class OllamaExtractionProvider(ExtractionProvider):
             converted_data = prompt + converted_data
 
         return converted_data
+
+    def _postprocess(self, model_res: str):
+        result = remove_image_special(model_res["response"].strip())
+
+        try:
+            result = json.loads(result)
+
+        except:
+            result = {}
+            logger.error("Model return wrong json format !!!")
+
+        return result
 
     def _generate_sync(
         self, resume_data: bytes, sys_mess: Optional[str], file_suffix: str
@@ -67,7 +81,7 @@ class OllamaExtractionProvider(ExtractionProvider):
 
             logger.info(response["response"].strip())
 
-            return remove_image_special(response["response"].strip())
+            return self._postprocess(response)
 
         except Exception as e:
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
