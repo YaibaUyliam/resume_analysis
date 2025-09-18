@@ -19,7 +19,14 @@ class OllamaExtractionProvider(ExtractionProvider):
         logger.info("Running model with Ollama ........")
         super().__init__(use_vision)
 
-        self.otps = {"temperature": 0, "num_ctx": 12000, "num_predict": -1}  # 16384
+        self.otps = {
+            "temperature": 0,
+            "num_ctx": 12288,
+            "num_predict": -1,
+            "seed": 42,
+            "top_k": 1,
+            "top_p": 1,
+        }
         self.model = model_name
         self._client = ollama.Client(host=host) if host else ollama.Client()
 
