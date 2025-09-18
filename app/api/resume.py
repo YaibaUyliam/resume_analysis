@@ -6,7 +6,7 @@ import base64
 import json
 import requests
 
-from fastapi import APIRouter, UploadFile, HTTPException, Request, status
+from fastapi import APIRouter, UploadFile, HTTPException, Request, status, Form, File
 from fastapi.responses import JSONResponse
 from typing import Optional
 
@@ -47,7 +47,8 @@ def save_results(response, filename):
 @resume_extract_router.post("/extract")
 async def extract(
     request: Request,
-    cv_file: UploadFile | str,
+    cv_url: Optional[str] = Form(None),
+    cv_file: Optional[UploadFile] = File(None),
     prompt_file: Optional[UploadFile] = None,
 ):
     """
@@ -60,20 +61,29 @@ async def extract(
         JSON response confirming receipt and showing filename.
     """
 
-    if isinstance(cv_file, UploadFile):
+    if cv_file:
         contents = await cv_file.read()
-    else:
-        contents = requests.get(cv_file)
-        contents.raise_for_status()
+        file_name = cv_file.filename
 
-    if not contents or not cv_file.filename.endswith((".pdf", ".docx", ".doc")):
+    elif cv_url:
+        contents = requests.get(cv_url, timeout=30)
+        contents.raise_for_status()
+        contents = contents.content
+        file_name = cv_url
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is not provided",
+        )
+
+    if not contents or not file_name.endswith((".pdf", ".docx", ".doc")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file. Please upload a valid file.",
         )
 
-    filename = cv_file.filename
-    logger.info(filename)
+    logger.info(file_name)
 
     prompt = None
     if prompt_file:
@@ -83,14 +93,14 @@ async def extract(
 
     try:
         response = await request.app.state.model_gen(
-            contents, prompt, "." + filename.split(".")[-1]
+            contents, prompt, "." + file_name.split(".")[-1]
         )
 
         # save_results(response, filename)
 
         return JSONResponse(
             content={
-                "filename": filename,
+                "filename": file_name,
                 "info_extract": response,
             }
         )
