@@ -1,9 +1,9 @@
 # Stage 1
-FROM ollama/ollama:0.11.6 AS models
-RUN nohup bash -c "ollama serve &" && sleep 5 && ollama pull deepseek-r1:14b
+FROM ollama/ollama:v0.1.test AS models
+RUN nohup bash -c "ollama serve &" && sleep 5 && ollama pull qwen2.5:14b-instruct-q5_K_M
 
 #Stage 2
-FROM ollama/ollama:0.11.6
+FROM ollama/ollama:v0.1.test
 
 # Copy model từ stage 1 sang
 COPY --from=models /root/.ollama/models /root/.ollama/models
