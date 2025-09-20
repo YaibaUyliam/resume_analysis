@@ -10,7 +10,7 @@ from fastapi import APIRouter, UploadFile, HTTPException, Request, status, Form,
 from fastapi.responses import JSONResponse
 from typing import Optional
 
-from pdf2image import convert_from_bytes
+from .utils import convert_resume_format
 
 
 resume_extract_router = APIRouter()
@@ -21,16 +21,6 @@ def encode_image(pil_image: Image.Image):
     buffer = BytesIO()
     pil_image.save(buffer, format="JPEG")
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-
-def convert_pdf_to_img_base64(pdf_bytes: bytes) -> list[str]:
-    imgs = convert_from_bytes(pdf_bytes)
-
-    base64_imgs = []
-    for img in imgs:
-        base64_imgs.append(encode_image(img))
-
-    return base64_imgs
 
 
 def save_results(response, filename):
@@ -101,7 +91,8 @@ async def extract(
         return JSONResponse(
             content={
                 "filename": file_name,
-                "info_extract": response,
+                "info_extract": convert_resume_format(response),
+                "info_extract_raw": response,
             }
         )
 
