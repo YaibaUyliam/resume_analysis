@@ -16,7 +16,6 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
             "phone_number": "",
             "current_location": "",
             "available_date": "",
-            "desired_positions": [],
             "expected_salary_min": "",
             "expected_salary_max": "",
             "cover_letter_url": "",
@@ -34,7 +33,14 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
             "summary_education": "<summary_education>"
         }
     ],
-    "certificates": [],
+    "certificates": [
+        {
+        "certificate_name": "",
+        "issuer": "",
+        "issued_date": "",
+        "file_url": "",
+        }
+    ],
     "skills": [
         {
             "skill_name": "",
@@ -70,6 +76,7 @@ Guidelines:
 3. For screening.english_fluent / willing_to_travel / onsite_availability / immediate_joining / relocation_ok, analyse the resume and set True only when the text supports it; otherwise keep False. Use remote_preference='remote'/'onsite'/'hybrid' when the preference is stated, else 'unknown'.
 4. summary_of_key_factors should highlight the top 3-5 noteworthy achievements or traits in short phrases.
 5. Never invent facts; base every field strictly on the resume text.
+6. "duration" only contains information related to time (year, month, day), does not add or deduce words.
 """
 
 PROMPT = "Resume:\n"
