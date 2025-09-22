@@ -23,6 +23,7 @@ def convert_duration_to_dates(duration: str):
         .replace("--", "-")
         .replace("——", "-")
         .replace("––", "-")
+        .replace("~", "-")
         .strip()
     )
     if "-" not in duration:
@@ -115,6 +116,14 @@ def parse_float(value: str):
     except ValueError:
         return None
 
+def parse_array(value):
+    if not value:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        return [pos.strip() for pos in value.split("/") if pos.strip()]
+    return []
 
 def get_age(info: dict) -> int | None:
     if "age" in info:
@@ -146,7 +155,7 @@ def convert_resume_format(info):
         "currentLocation": p.get("current_location", ""),
         "yearsOfExperience": parse_years_of_experience(p.get("year_of_experience", "")),
         "availableDate": p.get("available_date", ""),
-        "desiredPositions": p.get("desired_positions", []),
+        "desiredPositions": parse_array(p.get("desired_position", "")),
         "expectedSalary": {
             "min": parse_float(p.get("expected_salary_min", "")),
             "max": parse_float(p.get("expected_salary_max", "")),
@@ -158,6 +167,16 @@ def convert_resume_format(info):
 
     # ==== Education ====
     education = []
+    certificates = []
+    for cer in info.get("certificates"):
+        certificates.append(
+            {
+            "name": cer.get("certificate_name",""),
+            "issuer": cer.get("issuer",""),
+            "issedDate": cer.get("issued_date",""),
+            "fileUrl": cer.get("file_url",""),
+            }
+        )
     for edu in info.get("education", []):
         startDate, endDate = convert_duration_to_dates(edu.get("duration", ""))
         education.append(
@@ -168,8 +187,10 @@ def convert_resume_format(info):
                 "startDate": startDate,
                 "endDate": endDate,
                 # "description": edu.get("summary_education", "")
+                "certificates": certificates,
             }
         )
+
 
     # ==== Skills ====
     skills = []
