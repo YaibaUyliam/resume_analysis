@@ -167,16 +167,6 @@ def convert_resume_format(info):
 
     # ==== Education ====
     education = []
-    certificates = []
-    for cer in info.get("certificates"):
-        certificates.append(
-            {
-            "name": cer.get("certificate_name",""),
-            "issuer": cer.get("issuer",""),
-            "issedDate": cer.get("issued_date",""),
-            "fileUrl": cer.get("file_url",""),
-            }
-        )
     for edu in info.get("education", []):
         startDate, endDate = convert_duration_to_dates(edu.get("duration", ""))
         education.append(
@@ -187,10 +177,20 @@ def convert_resume_format(info):
                 "startDate": startDate,
                 "endDate": endDate,
                 # "description": edu.get("summary_education", "")
-                "certificates": certificates,
             }
         )
 
+    # ==== Certificate ====
+    certificates = []
+    for cer in info.get("certificates",[]):
+        certificates.append(
+            {
+            "name": cer.get("certificate_name",""),
+            "issuer": cer.get("issuer",""),
+            "issedDate": cer.get("issued_date",""),
+            "fileUrl": cer.get("file_url",""),
+            }
+        )
 
     # ==== Skills ====
     skills = []
@@ -247,6 +247,7 @@ def convert_resume_format(info):
     convert_json = {
         "personalInfo": personalInfo,
         "education": education,
+        "certificates": certificates,
         "skills": skills,
         "experiences": experiences,
         "project": project,
