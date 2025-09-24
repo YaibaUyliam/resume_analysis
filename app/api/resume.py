@@ -50,6 +50,17 @@ async def extract(
     Returns:
         JSON response confirming receipt and showing filename.
     """
+    content_type = request.headers.get("content-type")
+    if content_type and content_type.startswith("application/json"):
+        body = await request.json()
+        cv_url = body.get("cv_url")
+        cv_file = None  # None
+
+        if not cv_url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File is not provided",
+            )
 
     if cv_file:
         contents = await cv_file.read()
