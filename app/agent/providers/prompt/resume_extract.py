@@ -59,6 +59,16 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
             "summary_experience": "<summary_experience>"
         }
     ],
+    "project": [
+        {
+        "proj_name": "",
+        "proj_company": "",
+        "proj_position": "",
+        "duration": "",
+        "proj_tech": "",
+        "proj_description": ""
+        }
+    ],
     "strengths": [],
     "addition_of_key_factor": {
         "summary_of_key_factors": [],
