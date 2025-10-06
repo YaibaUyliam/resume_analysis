@@ -19,7 +19,7 @@ class GenerationManager:
             from .providers import OllamaExtractionProvider
 
             return OllamaExtractionProvider(self.model_name, self.use_vision)
-        else:
-            from .providers import TorchExtractionProvider
+        # else:
+        #     from .providers import TorchExtractionProvider
 
-            return TorchExtractionProvider(self.model_path, self.torch_dtype, self.use_vision)
+        #     return TorchExtractionProvider(self.model_path, self.torch_dtype, self.use_vision)

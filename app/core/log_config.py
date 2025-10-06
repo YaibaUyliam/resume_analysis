@@ -36,5 +36,5 @@ def setup_logging() -> None:
     root.setLevel(level)
     root.addHandler(handler)
 
-    for noisy in ("sqlalchemy.engine", "uvicorn.access", "pdfminer", "python_multipart"):
+    for noisy in ("sqlalchemy.engine", "uvicorn.access", "pdfminer", "python_multipart", "kafka", "confluent_kafka", "urllib3"):
         logging.getLogger(noisy).setLevel(logging.WARNING)

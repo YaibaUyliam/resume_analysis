@@ -69,7 +69,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
         "proj_description": ""
         }
     ],
-    "strengths": [],
+    "extracted_keywords": [],
     "addition_of_key_factor": {
         "summary_of_key_factors": [],
         "screening": {
@@ -81,7 +81,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
 }
 
 Guidelines:
-1. Populate strengths, weaknesses with up to five concise bullet-style strings when the resume provides hints; leave the array empty only when absolutely no evidence is present.
+1. In extracted_keywords field, focus on technical skills, programming languages, frameworks, tools, platforms, certifications, and IT job title. Do not include full sentences or soft skills unless they are critical IT terms (e.g., "Agile", "Scrum").
 2. Set personal_info[0].languages to an array of spoken language names such as 'English', 'Chinese', 'Vietnamese'. Prefer canonical names; do not include proficiency words like 'fluent'.
 3. For screening.english_fluent / willing_to_travel / onsite_availability / immediate_joining / relocation_ok, analyse the resume and set True only when the text supports it; otherwise keep False. Use remote_preference='remote'/'onsite'/'hybrid' when the preference is stated, else 'unknown'.
 4. summary_of_key_factors should highlight the top 3-5 noteworthy achievements or traits in short phrases.

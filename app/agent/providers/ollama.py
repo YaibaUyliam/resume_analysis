@@ -28,6 +28,7 @@ class OllamaExtractionProvider(ExtractionProvider):
             "top_p": 1,
         }
         self.model = model_name
+        logger.info(f"Using model {model_name}")
         self._client = ollama.Client(host=host) if host else ollama.Client()
 
         installed_ollama_models = [
