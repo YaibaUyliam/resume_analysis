@@ -54,10 +54,10 @@ class ResumeConsumer:
         while True:
             try:
                 with self.lock:
-                    data = self.consumer.poll(timeout_ms=2000, max_records=1)
+                    data = self.consumer.poll(timeout_ms=5000, max_records=1)
                     if len(data) == 0:
                         logger.info("Data empty")
-                        time.sleep(60)
+                        time.sleep(10)
 
                 for _, items in data.items():
                     for item in items:
