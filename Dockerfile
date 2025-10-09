@@ -24,8 +24,6 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
 
 WORKDIR /env
-COPY ./pyproject.toml /env
-RUN uv sync
 
 # Stage 2: Pull models
 FROM ollama/ollama:v0.1.test AS models
@@ -34,6 +32,8 @@ RUN nohup bash -c "ollama serve &" && sleep 5 && ollama pull qwen2.5:14b-instruc
 # Final stage
 FROM app
 COPY --from=models /root/.ollama/models /root/.ollama/models
+COPY ./pyproject.toml /env
+RUN uv sync
 COPY . /env
 RUN chmod +x ./entrypoint.sh
 ENTRYPOINT ["./entrypoint.sh"]
