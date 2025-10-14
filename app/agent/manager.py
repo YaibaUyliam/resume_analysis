@@ -1,6 +1,6 @@
 import os
 
-from .providers.base import ExtractionProvider
+from .providers import ExtractionProvider, EmbeddingProvider
 from ..core import settings
 
 
@@ -23,3 +23,17 @@ class GenerationManager:
         #     from .providers import TorchExtractionProvider
 
         #     return TorchExtractionProvider(self.model_path, self.torch_dtype, self.use_vision)
+
+
+class EmbeddingManager:
+    def __init__(self):
+        self.model_provider = settings.EMBEDDING_PROVIDER
+        self.model_name = settings.EMBEDDING_MODEL
+        # self.model_path = settings.LL_MODEL_CKPT_PATH
+        # self.torch_dtype = settings.TORCH_DTYPE
+
+    async def init_model(self) -> EmbeddingProvider:
+        if self.model_provider == "ollama":
+            from .providers import OllamaEmbeddingProvider
+
+            return OllamaEmbeddingProvider(self.model_name)

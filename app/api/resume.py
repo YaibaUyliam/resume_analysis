@@ -10,7 +10,7 @@ from fastapi import APIRouter, UploadFile, HTTPException, Request, status, Form,
 from fastapi.responses import JSONResponse
 from typing import Optional
 
-from .utils import convert_resume_format
+from ..agent import ResumeService
 
 
 resume_extract_router = APIRouter()
@@ -40,21 +40,14 @@ async def extract(
     cv_url: Optional[str] = Form(None),
     cv_file: Optional[UploadFile] = File(None),
     prompt_file: Optional[UploadFile] = None,
+    cv_id: Optional[str] = Form(None),
 ):
-    """
-    Receive a PDF or any file via multipart/form-data and return important information in file.
-
-    Args:
-        pdf (UploadFile): The uploaded file sent in 'pdf' field.
-
-    Returns:
-        JSON response confirming receipt and showing filename.
-    """
     content_type = request.headers.get("content-type")
     if content_type and content_type.startswith("application/json"):
         body = await request.json()
         cv_url = body.get("cv_url")
         cv_file = None  # None
+        cv_id = body.get("cv_id")
 
         if not cv_url:
             raise HTTPException(
@@ -62,6 +55,7 @@ async def extract(
                 detail="File is not provided",
             )
 
+    logger.info(f"Resume ID: {cv_id}")
     if cv_file:
         contents = await cv_file.read()
         file_name = cv_file.filename
@@ -93,20 +87,19 @@ async def extract(
         prompt = prompt.decode("utf-8")
 
     try:
-        response = await request.app.state.model_gen(
-            contents, prompt, "." + file_name.split(".")[-1]
+        resume_service = ResumeService()
+        gen_res, gen_res_format = await resume_service.extract_and_store(
+            contents, prompt, "." + file_name.split(".")[-1], cv_id
         )
-
-        # save_results(response, filename)
 
         return JSONResponse(
             content={
                 "filename": file_name,
-                "info_extract": convert_resume_format(response),
-                "info_extract_raw": response,
+                "info_extract": gen_res_format,
+                "info_extract_raw": gen_res,
             }
         )
 
     except Exception as e:
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"PDF conversion failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

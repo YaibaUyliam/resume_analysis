@@ -8,7 +8,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from .exceptions import GenerationError
 from .base import ExtractionProvider, EmbeddingProvider, remove_image_special
-from .prompt import PROMPT, SYSTEM
+from .prompt import PROMPT, SYSTEM, TASK
 
 
 logger = logging.getLogger(__name__)
@@ -87,9 +87,9 @@ class OllamaExtractionProvider(ExtractionProvider):
                     images=preprocessed_data,
                 )
 
-            logger.info(response["response"].strip())
+            # logger.info(response["response"].strip())
 
-            return self._postprocess(response)
+            return self._postprocess(response), preprocessed_data
 
         except Exception as e:
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
@@ -102,26 +102,76 @@ class OllamaExtractionProvider(ExtractionProvider):
         )
 
 
-# class OllamaEmbeddingProvider(EmbeddingProvider):
-#     def __init__(
-#         self,
-#         embedding_model: str = settings.EMBEDDING_MODEL,
-#         host: Optional[str] = None,
-#     ):
-#         self._model = embedding_model
-#         self._client = ollama.Client(host=host) if host else ollama.Client()
+class OllamaEmbeddingProvider(EmbeddingProvider):
+    def __init__(
+        self,
+        model_name: str,
+        host: Optional[str] = None,
+    ):
+        super().__init__()
 
-#     async def embed(self, text: str) -> List[float]:
-#         """
-#         Generate an embedding for the given text.
-#         """
-#         try:
-#             response = await run_in_threadpool(
-#                 self._client.embed,
-#                 input=text,
-#                 model=self._model,
-#             )
-#             return response.embeddings
-#         except Exception as e:
-#             logger.error(f"ollama embedding error: {e}")
-#             raise ProviderError(f"Ollama - Error generating embedding: {e}") from e
+        self.otps = {
+            "temperature": 0,
+            "num_ctx": 8192,
+            "num_predict": -1,
+            "seed": 42,
+            "top_k": 1,
+            "top_p": 1,
+        }
+        self._model = model_name
+        logger.info(f"Using model {model_name}")
+        self._client = ollama.Client(host=host) if host else ollama.Client()
+
+        installed_ollama_models = [
+            model_class.model for model_class in self._client.list().models
+        ]
+        if self._model not in installed_ollama_models:
+            raise GenerationError("Model has not installed !!!")
+
+    def _embed_sync(self, input_data: list[str], query: bool) -> str:
+        preprocessed_data = []
+
+        if query:
+            task_description = TASK
+            for data in input_data:
+                # Qwen3 have instruct
+                preprocessed_data.append(f"Instruct: {task_description}\nQuery: {data}")
+        else:
+            preprocessed_data = input_data
+
+        logger.info(preprocessed_data)
+        try:
+            response = self._client.embed(
+                input=preprocessed_data,
+                model=self._model,
+                truncate=True,
+                dimensions=1024,
+            )
+
+            return response
+
+        except Exception as e:
+            raise GenerationError(f"Ollama - Error generating response: {e}") from e
+
+    async def __call__(self, input_data: str, query: bool = False) -> List[float]:
+        response = await run_in_threadpool(self._embed_sync, input_data, query)
+        return response.embeddings
+
+
+if __name__ == "__main__":
+    import asyncio
+    import numpy as np
+
+    client = OllamaEmbeddingProvider(model_name="qwen3-embedding:0.6b-fp16")
+    resume_data = ["What is the capital of China?", "Explain gravity"]
+
+    res = asyncio.run(client(resume_data, True))
+    print(np.array(res).shape)
+    documents = [
+        "The capital of China is Beijing.",
+        "Gravity is a force that attracts two bodies towards each other. It gives weight to physical objects and is responsible for the movement of planets around the sun.",
+    ]
+    res_1 = asyncio.run(client(documents, False))
+
+    scores = np.array(res) @ np.array(res_1).T
+    print(scores.tolist())

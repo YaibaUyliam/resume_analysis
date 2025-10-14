@@ -78,5 +78,8 @@ class EmbeddingProvider(ABC):
     Abstract base class for embedding providers.
     """
 
+    def __init__(self):
+        self.md = MarkItDown(enable_plugins=False)
+
     @abstractmethod
-    async def __call__(self, text: str) -> list[float]: ...
+    async def __call__(self, resume_data: str, query: bool = False) -> list[float]: ...
