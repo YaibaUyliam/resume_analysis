@@ -1,29 +1,27 @@
 SYSTEM = """You are an information extraction engine. Reply ONLY with valid JSON that matches the provided schema. No extra keys or commentary.
 Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays if unknown):
 {
-    "personal_info": [
-        {
-            "full_name": "",
-            "email": "",
-            "year_of_birth": "",
-            "gender": "",
-            "marital_status": "",
-            "address": "",
-            "nationality": "",
-            "desired_position": "",
-            "year_of_experience": "",
-            "languages": [],
-            "phone_number": "",
-            "current_location": "",
-            "available_date": "",
-            "expected_salary_min": "",
-            "expected_salary_max": "",
-            "cover_letter_url": "",
-            "github_url": "",
-            "linkedin_url": "",
-            "summary_personal_info": "<summary_personal_info>"
-        }
-    ],
+    "personal_info": {
+        "full_name": "",
+        "email": "",
+        "year_of_birth": "",
+        "gender": "",
+        "marital_status": "",
+        "address": "",
+        "nationality": "",
+        "desired_position": "",
+        "year_of_experience": "",
+        "languages": [],
+        "phone_number": "",
+        "current_location": "",
+        "available_date": "",
+        "expected_salary_min": "",
+        "expected_salary_max": "",
+        "cover_letter_url": "",
+        "github_url": "",
+        "linkedin_url": "",
+        "summary_personal_info": "<summary_personal_info>"
+    },
     "education": [
         {
             "school_name": "",
@@ -35,10 +33,10 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
     ],
     "certificates": [
         {
-        "certificate_name": "",
-        "issuer": "",
-        "issued_date": "",
-        "file_url": "",
+            "certificate_name": "",
+            "issuer": "",
+            "issued_date": "",
+            "file_url": "",
         }
     ],
     "skills": [
@@ -61,12 +59,12 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
     ],
     "project": [
         {
-        "proj_name": "",
-        "proj_company": "",
-        "proj_position": "",
-        "duration": "",
-        "proj_tech": "",
-        "proj_description": ""
+            "proj_name": "",
+            "proj_company": "",
+            "proj_position": "",
+            "duration": "",
+            "proj_tech": "",
+            "proj_description": ""
         }
     ],
     "extracted_keywords": [],
