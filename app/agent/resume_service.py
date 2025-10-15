@@ -1,10 +1,12 @@
 import logging
 import traceback
 import re
+import os
 from elasticsearch import Elasticsearch, AsyncElasticsearch
 
 from .manager import GenerationManager, EmbeddingManager
 from .utils import convert_resume_format
+from .providers.prompt.resume_prompt import PROMPT, SYSTEM, TASK
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,8 @@ class ResumeService:
         self.embedding_manager = EmbeddingManager()
 
         self.es_client = AsyncElasticsearch(hosts=["http://localhost:9200"])
-        self.index_name = "resume-extract-test-1013"
+        self.index_name = os.environ["ES_CV_INDEX"]
+        logger.info(f"Index name: {self.index_name}")
 
     async def _store_resume(self, gen_res, emb_res, cv_id):
         year_of_experience = gen_res["personal_info"]["year_of_experience"]
@@ -40,10 +43,12 @@ class ResumeService:
         model_gen = await self.generation_manager.init_model()
         model_emb = await self.embedding_manager.init_model()
 
-        gen_res, resume_text = await model_gen(contents, prompt, suffix)
-        # save_results(response, filename)
+        if prompt is None:
+            prompt = PROMPT
+        gen_res, resume_text = await model_gen(contents, prompt, SYSTEM, suffix)
+
         gen_res_format = convert_resume_format(gen_res)
-        emb_res = await model_emb([resume_text])
+        emb_res = await model_emb([resume_text], TASK)
 
         if cv_id:
             logger.info("Saving resume ....")

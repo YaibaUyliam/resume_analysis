@@ -1,8 +1,9 @@
 import logging
 import traceback
-from PIL import Image
-from io import BytesIO
-import base64
+
+# from PIL import Image
+# from io import BytesIO
+# import base64
 import json
 import requests
 
@@ -17,10 +18,10 @@ resume_extract_router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def encode_image(pil_image: Image.Image):
-    buffer = BytesIO()
-    pil_image.save(buffer, format="JPEG")
-    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+# def encode_image(pil_image: Image.Image):
+#     buffer = BytesIO()
+#     pil_image.save(buffer, format="JPEG")
+#     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
 def save_results(response, filename):

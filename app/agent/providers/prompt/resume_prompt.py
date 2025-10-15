@@ -88,3 +88,5 @@ Guidelines:
 """
 
 PROMPT = "Resume:\n"
+
+TASK = "Given a web search query, retrieve relevant passages that answer the query"
