@@ -258,6 +258,10 @@ def convert_resume_format(info):
     return convert_json
 
 
+def convert_jd_format():
+    return
+
+
 if __name__ == "__main__":
     input_folder = "/home/yaiba/Downloads/Telegram Desktop/results"
     output_folder = "output_jsons"

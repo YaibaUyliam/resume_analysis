@@ -1,1 +1,2 @@
-from .resume_extract import PROMPT, SYSTEM
+# from .resume_prompt import PROMPT, SYSTEM
+# from .task import TASK

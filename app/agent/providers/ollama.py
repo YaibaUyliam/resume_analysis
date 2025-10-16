@@ -8,7 +8,6 @@ from fastapi.concurrency import run_in_threadpool
 
 from .exceptions import GenerationError
 from .base import ExtractionProvider, EmbeddingProvider, remove_image_special
-from .prompt import PROMPT, SYSTEM, TASK
 
 
 logger = logging.getLogger(__name__)
@@ -57,15 +56,12 @@ class OllamaExtractionProvider(ExtractionProvider):
         return result
 
     def _generate_sync(
-        self, resume_data: bytes, sys_mess: Optional[str], file_suffix: str
+        self, resume_data: bytes, prompt: str, sys_mess: str, file_suffix: str
     ) -> str:
         """
         Generate a response from the model.
         """
-        if not sys_mess:
-            sys_mess = SYSTEM
-
-        preprocessed_data = self._preprocess_data(resume_data, PROMPT, file_suffix)
+        preprocessed_data = self._preprocess_data(resume_data, prompt, file_suffix)
 
         try:
             if not self.use_vision:
@@ -81,7 +77,7 @@ class OllamaExtractionProvider(ExtractionProvider):
             else:
                 response = self._client.generate(
                     system=sys_mess,
-                    prompt=PROMPT,
+                    prompt=prompt,
                     model=self.model,
                     options=self.otps,
                     images=preprocessed_data,
@@ -95,10 +91,10 @@ class OllamaExtractionProvider(ExtractionProvider):
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
 
     async def __call__(
-        self, resume_data: bytes, prompt: Optional[str], file_suffix: str
+        self, resume_data: bytes, prompt: str, sys_mess: str, file_suffix: str
     ) -> str:
         return await run_in_threadpool(
-            self._generate_sync, resume_data, prompt, file_suffix
+            self._generate_sync, resume_data, prompt, sys_mess, file_suffix
         )
 
 
@@ -128,14 +124,13 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         if self._model not in installed_ollama_models:
             raise GenerationError("Model has not installed !!!")
 
-    def _embed_sync(self, input_data: list[str], query: bool) -> str:
+    def _embed_sync(self, input_data: list[str], task: str, query: bool) -> str:
         preprocessed_data = []
 
         if query:
-            task_description = TASK
             for data in input_data:
                 # Qwen3 have instruct
-                preprocessed_data.append(f"Instruct: {task_description}\nQuery: {data}")
+                preprocessed_data.append(f"Instruct: {task}\nQuery: {data}")
         else:
             preprocessed_data = input_data
 
@@ -153,8 +148,8 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         except Exception as e:
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
 
-    async def __call__(self, input_data: str, query: bool = False) -> List[float]:
-        response = await run_in_threadpool(self._embed_sync, input_data, query)
+    async def __call__(self, input_data: str, task, query: bool = False) -> List[float]:
+        response = await run_in_threadpool(self._embed_sync, input_data, task, query)
         return response.embeddings
 
 
