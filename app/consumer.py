@@ -15,12 +15,12 @@ from dotenv import load_dotenv
 from .core import setup_logging
 
 
-if os.environ.get("ENV") != "production":
+if os.environ.get("APP_ENV") != "production":
     load_dotenv("./.env")
 
 setup_logging()
 logger = logging.getLogger(__name__)
-logger.info(os.environ.get(os.environ.get("ENV")))
+logger.info(os.environ.get("APP_ENV"))
 
 
 class ResumeConsumer:

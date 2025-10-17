@@ -4,14 +4,14 @@ from typing import Optional
 from dotenv import load_dotenv
 
 
-if os.environ.get("ENV") != "production":
+if os.environ.get("APP_ENV") != "production":
     load_dotenv("./.env")
 
 
 class Settings:
     # which is copied to the user's .env file upon setup.
     PROJECT_NAME: str = "Resume Matcher"
-    ENV: str = os.environ.get("ENV")  # debug or production
+    # ENV: str = os.environ.get("APP_ENV")  # debug or production
 
     LLM_PROVIDER: str = os.environ.get("LLM_PROVIDER")  # ollama or huggingface
     LL_MODEL: str = os.environ.get("LL_MODEL")

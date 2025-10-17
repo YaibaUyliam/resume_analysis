@@ -22,7 +22,7 @@ def setup_logging() -> None:
     if root.handlers:
         return
 
-    env = os.environ.get("ENV", "production")
+    env = os.environ.get("APP_ENV", "production")
     level = _LEVEL_BY_ENV.get(env, logging.INFO)
 
     formatter = logging.Formatter(
