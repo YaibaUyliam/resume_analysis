@@ -16,7 +16,7 @@ class ResumeService:
         self.generation_manager = GenerationManager()
         self.embedding_manager = EmbeddingManager()
 
-        self.es_client = AsyncElasticsearch(hosts=["http://localhost:9200"])
+        self.es_client = AsyncElasticsearch(hosts=[os.environ["ES_HOST"]])
         self.index_name = os.environ["ES_CV_INDEX"]
         logger.info(f"Index name: {self.index_name}")
 

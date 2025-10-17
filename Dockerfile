@@ -1,5 +1,5 @@
 # Stage 1: Build app env
-FROM ollama/ollama:v0.1.test AS app
+FROM yaibawiliam/ollama:v0.12.6.dev AS app
 
 RUN <<EOF
 apt update -y && apt upgrade -y && apt install -y --no-install-recommends  \
@@ -26,9 +26,9 @@ ENV PATH="/root/.local/bin/:$PATH"
 WORKDIR /env
 
 # Stage 2: Pull models
-FROM ollama/ollama:v0.1.test AS models
+FROM yaibawiliam/ollama:v0.12.6.dev AS models
 RUN nohup bash -c "ollama serve &" && sleep 5 && ollama pull qwen2.5:14b-instruct-q5_K_M
-
+RUN ollama pull qwen3-embedding:0.6b-fp16
 # Final stage
 FROM app
 COPY --from=models /root/.ollama/models /root/.ollama/models

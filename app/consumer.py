@@ -64,7 +64,7 @@ class ResumeConsumer:
                         item: dict = item.value
                         logger.info(item)
 
-                        if os.environ.get("ENV", "production") == "prduction":
+                        if os.environ.get("ENV", "production") == "production":
                             cv_url = item.get("local_url")
                         else:
                             cv_url = item.get("public_url")
