@@ -20,3 +20,23 @@ services:
       - "5601:5601"
     depends_on:
       - elasticsearch
+
+  matcher:
+    image: yaibawiliam/resume_analysis:v5.0.0
+    container_name: matcher
+    environment:
+      - ENV="production"
+      - LLM_PROVIDER="ollama"
+      - LL_MODEL="qwen2.5:14b-instruct-q5_K_M"
+      - USE_VISION=0
+      - EMBEDDING_PROVIDER="ollama"
+      - EMBEDDING_MODEL="qwen3-embedding:0.6b-fp16"
+      - KAFKA = 43.198.68.123:9092, 43.198.68.123:9093, 43.198.68.123:9094
+      - GROUP_ID = resume_1
+      - PROCESS = 1
+      - PORT = 8081
+      - ES_HOST = http://elasticsearch:9200
+      - ES_CV_INDEX = resume-extract-test-1013
+      - ES_JD_INDEX = jd-extract-test-1013
+    ports:
+      - "9001:8081"
