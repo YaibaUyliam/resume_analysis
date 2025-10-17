@@ -64,21 +64,21 @@ class ResumeConsumer:
                         item: dict = item.value
                         logger.info(item)
 
+                        cv_id = item.get("cv_id")
                         if os.environ.get("ENV", "production") == "production":
                             cv_url = item.get("local_url")
                         else:
                             cv_url = item.get("public_url")
 
                         logger.info(cv_url)
-                        payload = json.dumps({"cv_url": cv_url})
-
+                        payload = json.dumps({"cv_url": cv_url, "cv_id": cv_id})
                         response = requests.request(
                             "POST", self.api_url, headers=self.headers, data=payload
                         )
 
                         logger.info(response.json())
                         results = response.json()
-                        results["cv_id"] = item.get("cv_id")
+                        results["cv_id"] = cv_id
                         results["job_id"] = item.get("job_id")
 
                         self.producer.send(topic=self.topic_send, value=results)
