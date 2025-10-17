@@ -20,7 +20,7 @@ if os.environ.get("ENV") != "production":
 
 setup_logging()
 logger = logging.getLogger(__name__)
-logger.info(os.environ.get("LL_MODEL"))
+logger.info(os.environ.get(os.environ.get("ENV")))
 
 
 class ResumeConsumer:

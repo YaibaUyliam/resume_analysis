@@ -27,8 +27,9 @@ WORKDIR /env
 
 # Stage 2: Pull models
 FROM yaibawiliam/ollama:v0.12.6.dev AS models
-RUN nohup bash -c "ollama serve &" && sleep 5 && ollama pull qwen2.5:14b-instruct-q5_K_M
-RUN ollama pull qwen3-embedding:0.6b-fp16
+RUN nohup bash -c "ollama serve &" && sleep 5 \
+    && ollama pull qwen2.5:14b-instruct-q5_K_M \
+    && ollama pull qwen3-embedding:0.6b-fp16
 # Final stage
 FROM app
 COPY --from=models /root/.ollama/models /root/.ollama/models
