@@ -22,7 +22,7 @@ def setup_logging() -> None:
     if root.handlers:
         return
 
-    env = os.environ.get("ENV", "production")
+    env = os.environ.get("APP_ENV", "production")
     level = _LEVEL_BY_ENV.get(env, logging.INFO)
 
     formatter = logging.Formatter(
@@ -36,5 +36,5 @@ def setup_logging() -> None:
     root.setLevel(level)
     root.addHandler(handler)
 
-    for noisy in ("sqlalchemy.engine", "uvicorn.access", "pdfminer", "python_multipart"):
+    for noisy in ("sqlalchemy.engine", "uvicorn.access", "pdfminer", "python_multipart", "kafka", "confluent_kafka", "urllib3"):
         logging.getLogger(noisy).setLevel(logging.WARNING)

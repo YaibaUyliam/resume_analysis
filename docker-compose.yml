@@ -1,0 +1,50 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.4
+    container_name: es01
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - /mnt/newdisk/database/esdata:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.1.4
+    container_name: kibana01
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  matcher:
+    image: yaibawiliam/resume_analysis:v5.0.3
+    container_name: matcher
+    privileged: true
+    shm_size: "16g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    environment:
+      - APP_ENV=production
+      - LLM_PROVIDER=ollama
+      - LL_MODEL=qwen2.5:14b-instruct-q5_K_M
+      - USE_VISION=0
+      - EMBEDDING_PROVIDER=ollama
+      - EMBEDDING_MODEL=qwen3-embedding:0.6b-fp16
+      - KAFKA=43.198.68.123:9092,43.198.68.123:9093,43.198.68.123:9094
+      - GROUP_ID=resume_1
+      - PROCESS=1
+      - PORT=8081
+      - ES_HOST=http://elasticsearch:9200
+      - ES_CV_INDEX=resume-extract-test-1013
+      - ES_JD_INDEX=jd-extract-test-1013
+    ports:
+      - "9001:8081"

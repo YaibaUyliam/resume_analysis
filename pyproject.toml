@@ -1,6 +1,6 @@
 [project]
 name = "resume-analysis"
-version = "0.1.0"
+version = "1.0.0"
 description = "Resume Analysis Backend API"
 requires-python = ">=3.12"
 dependencies = [
@@ -32,11 +32,10 @@ dependencies = [
     "magika==0.6.1",
     "Markdown==3.8",
     "markdownify==1.1.0",
-    "markitdown[all]==0.1.1",
+    "markitdown[all]==0.1.3",
     "mpmath==1.3.0",
     "numpy==2.2.4",
-    "ollama==0.5.3",
-    "onnxruntime==1.21.1",
+    "ollama==0.6.0",
     "openai==1.75.0",
     "packaging==25.0",
     "pdfminer.six==20250327",
@@ -61,7 +60,10 @@ dependencies = [
     "uvicorn==0.34.0",
     "pdf2image",
     "wheel==0.45.1",
-    "transformers==4.53.3"
+    "transformers==4.53.3",
+    "pypdf==6.0.0",
+    "kafka-python==2.2.15",
+    "elasticsearch[async]==9.1.1"
 ]
 
 [build-system]

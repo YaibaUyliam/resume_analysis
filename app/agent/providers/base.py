@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 
 def remove_image_special(text):
-    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
     ch_special = ["<ref>", "<ref>", "```", "json"]
     for ch in ch_special:
@@ -58,15 +58,19 @@ class ExtractionProvider(ABC):
             return convert_pdf_to_img_base64(resume_data)
 
         else:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix) as temp_file:
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=file_suffix
+            ) as temp_file:
                 temp_file.write(resume_data)
                 temp_file.flush()
                 temp_path = temp_file.name
 
-            return self.md.convert(temp_path).text_content
+                return self.md.convert(temp_path).text_content
 
     @abstractmethod
-    async def __call__(self, resume_data: bytes, prompt: Optional[str], file_suffix: str) -> str: ...
+    async def __call__(
+        self, resume_data: bytes, prompt: Optional[str], file_suffix: str
+    ) -> str: ...
 
 
 class EmbeddingProvider(ABC):
@@ -74,5 +78,8 @@ class EmbeddingProvider(ABC):
     Abstract base class for embedding providers.
     """
 
+    def __init__(self):
+        self.md = MarkItDown(enable_plugins=False)
+
     @abstractmethod
-    async def __call__(self, text: str) -> list[float]: ...
+    async def __call__(self, resume_data: str, query: bool = False) -> list[float]: ...

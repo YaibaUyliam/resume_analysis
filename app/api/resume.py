@@ -1,8 +1,9 @@
 import logging
 import traceback
-from PIL import Image
-from io import BytesIO
-import base64
+
+# from PIL import Image
+# from io import BytesIO
+# import base64
 import json
 import requests
 
@@ -10,27 +11,17 @@ from fastapi import APIRouter, UploadFile, HTTPException, Request, status, Form,
 from fastapi.responses import JSONResponse
 from typing import Optional
 
-from pdf2image import convert_from_bytes
+from ..agent import ResumeService
 
 
 resume_extract_router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def encode_image(pil_image: Image.Image):
-    buffer = BytesIO()
-    pil_image.save(buffer, format="JPEG")
-    return base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-
-def convert_pdf_to_img_base64(pdf_bytes: bytes) -> list[str]:
-    imgs = convert_from_bytes(pdf_bytes)
-
-    base64_imgs = []
-    for img in imgs:
-        base64_imgs.append(encode_image(img))
-
-    return base64_imgs
+# def encode_image(pil_image: Image.Image):
+#     buffer = BytesIO()
+#     pil_image.save(buffer, format="JPEG")
+#     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
 def save_results(response, filename):
@@ -50,17 +41,22 @@ async def extract(
     cv_url: Optional[str] = Form(None),
     cv_file: Optional[UploadFile] = File(None),
     prompt_file: Optional[UploadFile] = None,
+    cv_id: Optional[str] = Form(None),
 ):
-    """
-    Receive a PDF or any file via multipart/form-data and return important information in file.
+    content_type = request.headers.get("content-type")
+    if content_type and content_type.startswith("application/json"):
+        body = await request.json()
+        cv_url = body.get("cv_url")
+        cv_file = None  # None
+        cv_id = body.get("cv_id")
 
-    Args:
-        pdf (UploadFile): The uploaded file sent in 'pdf' field.
+        if not cv_url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File is not provided",
+            )
 
-    Returns:
-        JSON response confirming receipt and showing filename.
-    """
-
+    logger.info(f"Resume ID: {cv_id}")
     if cv_file:
         contents = await cv_file.read()
         file_name = cv_file.filename
@@ -92,19 +88,19 @@ async def extract(
         prompt = prompt.decode("utf-8")
 
     try:
-        response = await request.app.state.model_gen(
-            contents, prompt, "." + file_name.split(".")[-1]
+        resume_service = ResumeService()
+        gen_res, gen_res_format = await resume_service.extract_and_store(
+            contents, prompt, "." + file_name.split(".")[-1], cv_id
         )
-
-        # save_results(response, filename)
 
         return JSONResponse(
             content={
                 "filename": file_name,
-                "info_extract": response,
+                "info_extract": gen_res_format,
+                "info_extract_raw": gen_res,
             }
         )
 
     except Exception as e:
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"PDF conversion failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
