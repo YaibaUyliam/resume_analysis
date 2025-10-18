@@ -24,6 +24,14 @@ services:
   matcher:
     image: yaibawiliam/resume_analysis:v5.0.3
     container_name: matcher
+    privileged: true
+    shm_size: "16g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
     environment:
       - APP_ENV=production
       - LLM_PROVIDER=ollama
