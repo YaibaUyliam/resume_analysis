@@ -66,7 +66,7 @@ async def extract(
     try:
         jd_service = JDService()
         gen_res, top_cv_id = await jd_service.extract_and_match(
-            contents, prompt, "." + file_name.split(".")[-1], jd_id
+            contents, prompt, file_name, jd_id
         )
 
         return JSONResponse(

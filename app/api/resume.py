@@ -73,7 +73,7 @@ async def extract(
             detail="File is not provided",
         )
 
-    if not contents or not file_name.endswith((".pdf", ".docx", ".doc")):
+    if not contents or not file_name.endswith((".pdf", ".docx", ".txt")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file. Please upload a valid file.",
@@ -90,7 +90,7 @@ async def extract(
     try:
         resume_service = ResumeService()
         gen_res, gen_res_format = await resume_service.extract_and_store(
-            contents, prompt, "." + file_name.split(".")[-1], cv_id
+            contents, prompt, file_name, cv_id
         )
 
         return JSONResponse(
