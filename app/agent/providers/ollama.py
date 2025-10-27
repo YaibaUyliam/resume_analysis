@@ -36,7 +36,7 @@ class OllamaExtractionProvider(ExtractionProvider):
         if model_name not in installed_ollama_models:
             raise GenerationError("Model has not installed !!!")
 
-    def _preprocess_data(self, resume_data: bytes, prompt: str, file_suffix: str):
+    def _preprocess_data(self, resume_data: bytes|str, prompt: str, file_suffix: str):
         converted_data = self.convert_data(resume_data, file_suffix)
         if not self.use_vision:
             converted_data = prompt + converted_data
@@ -56,7 +56,7 @@ class OllamaExtractionProvider(ExtractionProvider):
         return result
 
     def _generate_sync(
-        self, resume_data: bytes, prompt: str, sys_mess: str, file_suffix: str
+        self, resume_data: bytes|str, prompt: str, sys_mess: str, file_suffix: str
     ) -> str:
         """
         Generate a response from the model.

@@ -89,7 +89,37 @@ class JDService:
 
         return cv_list
 
-    async def extract_and_match(self, contents, prompt, file_name, jd_id=None):
+    async def _pre_data(self, contents: dict):
+        key_rm = [
+            "fromDate",
+            "toDate",
+            "departmentId",
+            "category",
+            "types",
+            "benefits",
+            "locations",
+            "isActive",
+            "isDeleted",
+            "createdAt",
+            "updatedAt",
+            "createdBy",
+            "createdByUsername",
+            "updatedBy",
+            "updatedByUsername",
+            "_class",
+        ]
+
+        dict2str = "\n".join(
+            [f"{k}: {v}" for k, v in contents.items() if k not in key_rm]
+        )
+        return dict2str
+
+    async def extract_and_match(
+        self, contents: bytes | dict, prompt, file_name, jd_id=None
+    ):
+        if isinstance(contents, dict):
+            contents = await self._pre_data(contents)
+
         model_gen = await self.generation_manager.init_model()
         model_emb = await self.embedding_manager.init_model()
 
