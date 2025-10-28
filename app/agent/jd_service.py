@@ -8,6 +8,8 @@ from elasticsearch import Elasticsearch, AsyncElasticsearch
 from .manager import GenerationManager, EmbeddingManager
 from .utils import convert_jd_format
 from .providers.prompt.jd_prompt import PROMPT, SYSTEM, TASK
+from .providers.prompt.resume_review import PROMPT_REVIEW, SYSTEM_REVIEW
+
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +91,22 @@ class JDService:
 
         return cv_list
 
+    async def review(self, model_gen, jd_content, jd_keywords, cv_list: list[dict]):
+        results = []
+
+        for resume in cv_list:
+            prompt = PROMPT_REVIEW.format(
+                raw_job_description=jd_content,
+                extracted_job_keywords=jd_keywords,
+                raw_resume=resume["content"],
+                extracted_resume_keywords=resume["keywords"],
+            )
+
+            gen_res, _ = await model_gen("", prompt, SYSTEM_REVIEW, None)
+            results.append({**resume, **gen_res})
+
+        return results
+
     async def _pre_data(self, contents: dict):
         key_rm = [
             "fromDate",
@@ -114,7 +132,7 @@ class JDService:
         )
         return dict2str
 
-    async def extract_and_match(
+    async def extract_match_review(
         self, contents: bytes | dict, prompt, file_name, jd_id=None
     ):
         if isinstance(contents, dict):
@@ -136,16 +154,25 @@ class JDService:
                 keywords=", ".join(gen_res["extracted_keywords"]), vector=emb_res[0]
             )
 
-        if jd_id:
-            logger.info("Saving resume ....")
-            try:
-                await self._store_resume(gen_res, emb_res[0], file_name, jd_id, jd_text)
-            except:
-                logger.info("Save data failed!!!!!!")
-                logger.error(traceback.format_exc())
+            cv_top_k_review = await self.review(
+                model_gen, contents, gen_res["extracted_keywords"], cv_matcher
+            )
+
+            if jd_id:
+                logger.info("Saving resume ....")
+                try:
+                    await self._store_resume(
+                        gen_res, emb_res[0], file_name, jd_id, jd_text
+                    )
+                except:
+                    logger.info("Save data failed!!!!!!")
+                    logger.error(traceback.format_exc())
+
+        else:
+            logger.info("Can not get extracted keywords")
 
         await self.es_client.close()
-        return gen_res, cv_matcher
+        return gen_res, cv_top_k_review
 
 
 if __name__ == "__main__":

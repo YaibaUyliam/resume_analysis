@@ -59,7 +59,7 @@ async def extract(
 
     try:
         jd_service = JDService()
-        gen_res, top_cv_id = await jd_service.extract_and_match(
+        gen_res, top_cv_id = await jd_service.extract_match_review(
             contents, prompt, file_name, jd_id
         )
 

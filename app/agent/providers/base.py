@@ -60,7 +60,7 @@ class ExtractionProvider(ABC):
         if isinstance(resume_data, str):
             return resume_data
 
-        if isinstance(resume_data, bytes):
+        if isinstance(resume_data, bytes) and file_suffix:
             with tempfile.NamedTemporaryFile(
                 delete=False, suffix=file_suffix
             ) as temp_file:
