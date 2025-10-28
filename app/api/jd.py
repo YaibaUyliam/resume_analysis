@@ -20,17 +20,11 @@ async def extract(
     prompt_file: Optional[UploadFile] = None,
     jd_id: Optional[str] = Form(None),
 ):
-    # content_type = request.headers.get("content-type")
-    # if content_type and content_type.startswith("application/json"):
-    #     body = await request.json()
-    #     jd_file = None  # None
-    #     jd_id = body.get("jd_id")
-
-    #     if not jd_url:
-    #         raise HTTPException(
-    #             status_code=status.HTTP_400_BAD_REQUEST,
-    #             detail="File is not provided",
-    #         )
+    content_type = request.headers.get("content-type")
+    if content_type and content_type.startswith("application/json"):
+        body = await request.json()
+        contents = body.get("jd_content")
+        jd_id = body.get("jd_id")
 
     logger.info(f"Job description ID: {jd_id}")
     if jd_file:
@@ -49,7 +43,7 @@ async def extract(
             detail="File is not provided",
         )
 
-    if not contents or not file_name.endswith((".pdf", ".docx", ".txt")):
+    if not contents: # or not file_name.endswith((".pdf", ".docx", ".txt")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file. Please upload a valid file.",
@@ -65,7 +59,7 @@ async def extract(
 
     try:
         jd_service = JDService()
-        gen_res, top_cv_id = await jd_service.extract_and_match(
+        gen_res, top_cv_id = await jd_service.extract_match_review(
             contents, prompt, file_name, jd_id
         )
 

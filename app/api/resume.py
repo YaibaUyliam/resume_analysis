@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def save_results(response, filename):
     import os
 
-    path_save = "/home/yaiba/project/resume_analysis/data/qwen3-30b-0830"
+    path_save = "./project/resume_analysis/data/qwen3-30b-0830"
     if not os.path.exists(path_save):
         os.mkdir(path_save)
     file_path = os.path.join(path_save, filename.split(".")[0] + ".json")
