@@ -34,7 +34,7 @@ class ResumeConsumer:
 
         self.consumer = KafkaConsumer(
             bootstrap_servers=os.environ["KAFKA"].split(","),
-            auto_offset_reset="latest",
+            auto_offset_reset=os.environ["OFFSET"],
             group_id=os.environ["GROUP_ID"],
             value_deserializer=lambda m: json.loads(m),
         )

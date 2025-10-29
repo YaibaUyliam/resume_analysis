@@ -66,7 +66,7 @@ async def extract(
         return JSONResponse(
             content={
                 "filename": file_name,
-                "top_cv_id": top_cv_id,
+                "top_cv": top_cv_id,
                 "info_extract_raw": gen_res,
             }
         )

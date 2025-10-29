@@ -22,7 +22,7 @@ class JDService:
         self.es_client = AsyncElasticsearch(hosts=[os.environ["ES_HOST"]])
         self.jd_index_name = os.environ["ES_JD_INDEX"]
         self.cv_index_name = os.environ["ES_CV_INDEX"]
-        logger.info(f"Index name: {self.jd_index_name}")
+        logger.info(f"Index name: {self.jd_index_name, self.cv_index_name}")
 
         self.timezone = timezone(timedelta(hours=8))
 
@@ -50,22 +50,35 @@ class JDService:
         logger.info(resp)
         await self.es_client.close()
 
-    async def _keywords_search(self, keywords):
+    async def _keywords_search(self, keywords, job_name, size=5):
+        # query = {
+        #     "_source": {"excludes": ["embedding_vector"]},
+        #     "size": size,
+        #     "query": {"match": {"keywords": keywords}},
+        # }
+        query_content = job_name + keywords
+        logger.info(f"Query content: {query_content}")
+
         query = {
             "_source": {"excludes": ["embedding_vector"]},
-            "size": 10,
-            "query": {"match": {"keywords": keywords}},
+            "size": size,
+            "query": {
+                "multi_match": {
+                    "query": query_content,
+                    "fields": ["keywords", "desired_position^2"],
+                }
+            },
         }
         response = await self.es_client.search(index=self.cv_index_name, body=query)
 
         return response["hits"]["hits"]
 
-    async def _vectors_search(self, query_vector: list):
+    async def _vectors_search(self, query_vector: list, size=5):
         response = await self.es_client.search(
             index=self.cv_index_name,
             body={
                 "_source": {"excludes": ["embedding_vector"]},
-                "size": 10,
+                "size": size,
                 "query": {
                     "script_score": {
                         "query": {"match_all": {}},
@@ -80,16 +93,15 @@ class JDService:
 
         return response["hits"]["hits"]
 
-    async def match(self, keywords, vector):
-        keywords_search_res = await self._keywords_search(keywords)
-        vectors_search_res = await self._vectors_search(vector)
-        logger.info(keywords_search_res)
+    async def match(self, keywords, vector, job_name):
+        keywords_search_res = await self._keywords_search(keywords, job_name)
+        # vectors_search_res = await self._vectors_search(vector)
 
-        cv_list = []
-        for hit in vectors_search_res:
-            cv_list.append(hit)
+        # cv_list = []
+        # for hit in vectors_search_res:
+        #     cv_list.append(hit)
 
-        return cv_list
+        return keywords_search_res
 
     async def review(self, model_gen, jd_content, jd_keywords, cv_list: list[dict]):
         results = []
@@ -98,8 +110,8 @@ class JDService:
             prompt = PROMPT_REVIEW.format(
                 raw_job_description=jd_content,
                 extracted_job_keywords=jd_keywords,
-                raw_resume=resume["content"],
-                extracted_resume_keywords=resume["keywords"],
+                raw_resume=resume["_source"]["content"],
+                extracted_resume_keywords=resume["_source"]["keywords"],
             )
 
             gen_res, _ = await model_gen("", prompt, SYSTEM_REVIEW, None)
@@ -151,11 +163,17 @@ class JDService:
 
         if gen_res["extracted_keywords"]:
             cv_matcher = await self.match(
-                keywords=", ".join(gen_res["extracted_keywords"]), vector=emb_res[0]
+                keywords=", ".join(gen_res["extracted_keywords"]),
+                vector=emb_res[0],
+                job_name=gen_res["job_name"],
             )
 
             cv_top_k_review = await self.review(
-                model_gen, contents, gen_res["extracted_keywords"], cv_matcher
+                model_gen, jd_text, gen_res["extracted_keywords"], cv_matcher
+            )
+
+            cv_top_k_review = sorted(
+                cv_top_k_review, key=lambda person: person["match_score"], reverse=True
             )
 
             if jd_id:
