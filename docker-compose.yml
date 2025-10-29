@@ -9,7 +9,7 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - /mnt/newdisk/database/esdata:/usr/share/elasticsearch/data
+      - /data/es:/usr/share/elasticsearch/data
 
   kibana:
     image: docker.elastic.co/kibana/kibana:9.1.4
@@ -22,8 +22,16 @@ services:
       - elasticsearch
 
   matcher:
-    image: yaibawiliam/resume_analysis:v5.0.3
+    image: yaibawiliam/resume_analysis:v5.1.0
     container_name: matcher
+    privileged: true
+    shm_size: "16g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
     environment:
       - APP_ENV=production
       - LLM_PROVIDER=ollama
