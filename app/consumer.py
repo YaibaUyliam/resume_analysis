@@ -25,6 +25,7 @@ logger.info(os.environ.get("APP_ENV"))
 
 class ResumeConsumer:
     def __init__(self):
+        time.sleep(20)
         logger.info("Starting ....")
 
         self.process = int(os.environ["PROCESS"])
