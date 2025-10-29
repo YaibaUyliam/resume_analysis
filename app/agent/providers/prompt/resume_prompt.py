@@ -67,24 +67,14 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
             "proj_description": ""
         }
     ],
-    "extracted_keywords": [],
-    "addition_of_key_factor": {
-        "summary_of_key_factors": [],
-        "screening": {
-            "willing_to_travel": false,
-            "immediate_joining": false,
-            "summary_of_key_screening": "<summary_of_key_screening>"
-        }
-    }
+    "extracted_keywords": []
 }
 
 Guidelines:
-1. In extracted_keywords field, focus on technical skills, programming languages, frameworks, tools, platforms, certifications, and IT job title. Do not include full sentences or soft skills unless they are critical IT terms (e.g., "Agile", "Scrum").
+1. In extracted_keywords field, focus on technical skills, programming languages, frameworks, tools, platforms, certifications, and job title. Do not include full sentences or soft skills unless they are critical IT terms (e.g., "Agile", "Scrum").
 2. Set personal_info[0].languages to an array of spoken language names such as 'English', 'Chinese', 'Vietnamese'. Prefer canonical names; do not include proficiency words like 'fluent'.
-3. For screening.english_fluent / willing_to_travel / onsite_availability / immediate_joining / relocation_ok, analyse the resume and set True only when the text supports it; otherwise keep False. Use remote_preference='remote'/'onsite'/'hybrid' when the preference is stated, else 'unknown'.
-4. summary_of_key_factors should highlight the top 3-5 noteworthy achievements or traits in short phrases.
-5. Never invent facts; base every field strictly on the resume text.
-6. "duration" only contains information related to time (year, month, day), does not add or deduce words.
+3. Never invent facts; base every field strictly on the resume text.
+4. "duration" only contains information related to time (year, month, day), does not add or deduce words.
 """
 
 PROMPT = "Resume:\n"
