@@ -31,19 +31,7 @@ async def extract(
         contents = await jd_file.read()
         file_name = jd_file.filename
 
-    # elif jd_url:
-    #     contents = requests.get(jd_url, timeout=30)
-    #     contents.raise_for_status()
-    #     contents = contents.content
-    #     file_name = jd_url
-
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File is not provided",
-        )
-
-    if not contents: # or not file_name.endswith((".pdf", ".docx", ".txt")):
+    if not contents:  # or not file_name.endswith((".pdf", ".docx", ".txt")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file. Please upload a valid file.",
