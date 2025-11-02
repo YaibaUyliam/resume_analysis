@@ -36,18 +36,18 @@ class ResumeConsumer:
         self.consumer = KafkaConsumer(
             bootstrap_servers=os.environ["KAFKA"].split(","),
             auto_offset_reset=os.environ["OFFSET"],
-            group_id=os.environ["GROUP_ID"],
+            group_id=os.environ["JD_GROUP_ID"],
             value_deserializer=lambda m: json.loads(m),
         )
-        self.consumer.subscribe(["extract_cv_request"])
+        self.consumer.subscribe(["recommend_cv_request"])
 
         self.producer = KafkaProducer(
             bootstrap_servers=os.environ["KAFKA"].split(","),
             value_serializer=lambda v: json.dumps(v).encode(),
         )
-        self.topic_send = "extract_cv_result"
+        self.topic_send = "recommend_cv_result"
 
-        self.api_url = f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/extract"
+        self.api_url = f"http://0.0.0.0:{os.environ['PORT']}/api/jd/upload"
         logger.info(self.api_url)
         self.headers = {"Content-Type": "application/json"}
 
@@ -65,22 +65,16 @@ class ResumeConsumer:
                         item: dict = item.value
                         logger.info(item)
 
-                        cv_id = item.get("cv_id")
-                        if os.environ.get("ENV", "production") == "production":
-                            cv_url = item.get("local_url")
-                        else:
-                            cv_url = item.get("public_url")
+                        jd_id = item.get("id")
 
-                        logger.info(cv_url)
-                        payload = json.dumps({"cv_url": cv_url, "cv_id": cv_id})
+                        payload = json.dumps({"jd_content": item, "jd_id": jd_id})
                         response = requests.request(
                             "POST", self.api_url, headers=self.headers, data=payload
                         )
 
                         logger.info(response.json())
                         results = response.json()
-                        results["cv_id"] = cv_id
-                        results["job_id"] = item.get("job_id")
+                        results["jd_id"] = jd_id
 
                         self.producer.send(topic=self.topic_send, value=results)
 
@@ -89,15 +83,12 @@ class ResumeConsumer:
 
             except Exception as e:
                 logger.error(traceback.format_exc())
-                # self.producer.send(topic=self.topic_send, value=info.results)
 
     def start(self):
         for _ in range(self.process):
             self.pool.apply_async(func=self.run)
 
         self.stop_event.wait()
-        # self.pool.close()
-        # self.pool.join()
 
 
 def signal_handler(sig, frame):

@@ -49,8 +49,6 @@ async def extract(
             detail="Invalid file. Please upload a valid file.",
         )
 
-    logger.info(file_name)
-
     prompt = None
     if prompt_file:
         logger.info("Receive prompt from user")
@@ -59,14 +57,13 @@ async def extract(
 
     try:
         jd_service = JDService()
-        gen_res, top_cv_id = await jd_service.extract_match_review(
+        gen_res, top_cv = await jd_service.extract_match_review(
             contents, prompt, file_name, jd_id
         )
 
         return JSONResponse(
             content={
-                "filename": file_name,
-                "top_cv": top_cv_id,
+                "top_cv": top_cv,
                 "info_extract_raw": gen_res,
             }
         )
