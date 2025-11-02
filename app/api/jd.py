@@ -25,6 +25,7 @@ async def extract(
         body = await request.json()
         contents = body.get("jd_content")
         jd_id = body.get("jd_id")
+        file_name = None
 
     logger.info(f"Job description ID: {jd_id}")
     if jd_file:

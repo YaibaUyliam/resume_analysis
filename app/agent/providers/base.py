@@ -53,18 +53,18 @@ class ExtractionProvider(ABC):
             self.use_vision = False
             self.md = MarkItDown(enable_plugins=False)
 
-    def convert_data(self, resume_data: bytes|str, file_suffix: str):
+    def convert_data(self, data: bytes|str, file_suffix: str):
         if self.use_vision:
-            return convert_pdf_to_img_base64(resume_data)
+            return convert_pdf_to_img_base64(data)
 
-        if isinstance(resume_data, str):
-            return resume_data
+        if isinstance(data, str):
+            return data
 
-        if isinstance(resume_data, bytes) and file_suffix:
+        if isinstance(data, bytes) and file_suffix:
             with tempfile.NamedTemporaryFile(
                 delete=False, suffix=file_suffix
             ) as temp_file:
-                temp_file.write(resume_data)
+                temp_file.write(data)
                 temp_file.flush()
                 temp_path = temp_file.name
 
