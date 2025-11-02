@@ -137,6 +137,7 @@ class JDService:
             "updatedBy",
             "updatedByUsername",
             "_class",
+            "id"
         ]
 
         dict2str = "\n".join(
