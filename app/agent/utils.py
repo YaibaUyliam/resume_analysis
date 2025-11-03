@@ -24,11 +24,18 @@ def convert_duration_to_dates(duration: str):
         .replace("——", "-")
         .replace("––", "-")
         .replace("~", "-")
+        .replace(" ", "")
         .strip()
     )
     if "-" not in duration:
         return duration, None
-    start, end = [p.strip() for p in duration.split("-", 1)]
+    # start, end = [p.strip() for p in duration.split("-", 1)]
+    parts = duration.split("-")
+    if len(parts) > 2:
+        start = "-".join(parts[:2])  
+        end = "-".join(parts[2:])    
+    else:
+        start, end = [p.strip() for p in duration.split("-", 1)]
     # start = start.replace(".", "-")
 
     month_map = {
