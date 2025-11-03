@@ -53,19 +53,24 @@ class ExtractionProvider(ABC):
             self.use_vision = False
             self.md = MarkItDown(enable_plugins=False)
 
-    def convert_data(self, resume_data: bytes, file_suffix: str):
+    def convert_data(self, data: bytes|str, file_suffix: str):
         if self.use_vision:
-            return convert_pdf_to_img_base64(resume_data)
+            return convert_pdf_to_img_base64(data)
 
-        else:
+        if isinstance(data, str):
+            return data
+
+        if isinstance(data, bytes) and file_suffix:
             with tempfile.NamedTemporaryFile(
                 delete=False, suffix=file_suffix
             ) as temp_file:
-                temp_file.write(resume_data)
+                temp_file.write(data)
                 temp_file.flush()
                 temp_path = temp_file.name
 
                 return self.md.convert(temp_path).text_content
+            
+        raise TypeError("resume_data is not valid type")
 
     @abstractmethod
     async def __call__(
