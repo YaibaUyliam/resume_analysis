@@ -25,31 +25,18 @@ async def extract(
         body = await request.json()
         contents = body.get("jd_content")
         jd_id = body.get("jd_id")
+        file_name = None
 
     logger.info(f"Job description ID: {jd_id}")
     if jd_file:
         contents = await jd_file.read()
         file_name = jd_file.filename
 
-    # elif jd_url:
-    #     contents = requests.get(jd_url, timeout=30)
-    #     contents.raise_for_status()
-    #     contents = contents.content
-    #     file_name = jd_url
-
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File is not provided",
-        )
-
-    if not contents: # or not file_name.endswith((".pdf", ".docx", ".txt")):
+    if not contents:  # or not file_name.endswith((".pdf", ".docx", ".txt")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file. Please upload a valid file.",
         )
-
-    logger.info(file_name)
 
     prompt = None
     if prompt_file:
@@ -59,14 +46,38 @@ async def extract(
 
     try:
         jd_service = JDService()
-        gen_res, top_cv_id = await jd_service.extract_match_review(
+        gen_res, top_cv = await jd_service.extract_match_review(
             contents, prompt, file_name, jd_id
         )
 
+        top_cv_shorten = []
+        for v in top_cv:
+            try:
+                if v["match_score"] >= 20:
+                    source = v["_source"]
+                    filtered_dict = {}
+
+                    filtered_dict["cv_id"] = source["id"]
+                    filtered_dict["cv_url"] = source["cv_url"]
+                    filtered_dict["content"] = source["content"]
+                    filtered_dict["year_of_experience"] = source.get(
+                        "year_of_experience"
+                    )
+                    filtered_dict["full_name"] = source["full_name"]
+                    filtered_dict["match_score"] = v["match_score"]
+                    filtered_dict["strong_matches"] = v["strong_matches"]
+                    filtered_dict["partial_matches"] = v["partial_matches"]
+                    filtered_dict["missing_keywords"] = v["missing_keywords"]
+                    filtered_dict["review"] = v["summary"]
+
+                    top_cv_shorten.append(filtered_dict)
+
+            except:
+                logger.error(traceback.format_exc())
+
         return JSONResponse(
             content={
-                "filename": file_name,
-                "top_cv": top_cv_id,
+                "top_cv": top_cv_shorten,
                 "info_extract_raw": gen_res,
             }
         )

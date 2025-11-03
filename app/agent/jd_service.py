@@ -137,6 +137,7 @@ class JDService:
             "updatedBy",
             "updatedByUsername",
             "_class",
+            "id",
         ]
 
         dict2str = "\n".join(
@@ -155,7 +156,11 @@ class JDService:
 
         if prompt is None:
             prompt = PROMPT
-        suffix = "." + file_name.split(".")[-1]
+
+        if file_name:
+            suffix = "." + file_name.split(".")[-1]
+        else:
+            suffix = None
         gen_res, jd_text = await model_gen(contents, prompt, SYSTEM, suffix)
 
         # gen_res_format = convert_jd_format(gen_res)
