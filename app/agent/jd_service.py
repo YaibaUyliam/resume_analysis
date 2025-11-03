@@ -21,12 +21,13 @@ class JDService:
 
         self.es_client = AsyncElasticsearch(hosts=[os.environ["ES_HOST"]])
         self.jd_index_name = os.environ["ES_JD_INDEX"]
+        self.search_result_index_name = os.environ["ES_SEARCH_RESULT_INDEX"]
         self.cv_index_name = os.environ["ES_CV_INDEX"]
         logger.info(f"Index name: {self.jd_index_name, self.cv_index_name}")
 
         self.timezone = timezone(timedelta(hours=8))
 
-    async def _store_resume(self, gen_res, emb_res, file_name, jd_id, jd_text):
+    async def _store_jd(self, gen_res, emb_res, file_name, jd_id, jd_text):
         minimum_years_of_experience = gen_res["minimum_years_of_experience"]
         if minimum_years_of_experience:
             match = re.search(r"\d+", str(minimum_years_of_experience))
@@ -48,7 +49,11 @@ class JDService:
 
         resp = await self.es_client.index(index=self.jd_index_name, document=doc)
         logger.info(resp)
-        await self.es_client.close()
+
+    async def _store_search_result(self, top_cv_id, jd_id):
+        doc = {"jd_id": jd_id, "top_cv_id": top_cv_id}
+        resp = await self.es_client.index(index=self.search_result_index_name, document=doc) # fmt:skip
+        logger.info(resp)
 
     async def _keywords_search(self, keywords, job_name, size=5):
         # query = {
@@ -180,13 +185,20 @@ class JDService:
             cv_top_k_review = sorted(
                 cv_top_k_review, key=lambda person: person["match_score"], reverse=True
             )
+            cv_top_k_review = [v for v in cv_top_k_review if v["match_score"] >= 20]
+
+            top_cv_id = []
+            for v in cv_top_k_review:
+                top_cv_id.append(v["_source"]["id"])
+            logger.info(f"Top CV ID: {top_cv_id}")
 
             if jd_id:
                 logger.info("Saving resume ....")
                 try:
-                    await self._store_resume(
-                        gen_res, emb_res[0], file_name, jd_id, jd_text
-                    )
+                    await self._store_jd(gen_res, emb_res[0], file_name, jd_id, jd_text)
+                    await self._store_search_result(top_cv_id, jd_id)
+                    await self.es_client.close()
+
                 except:
                     logger.info("Save data failed!!!!!!")
                     logger.error(traceback.format_exc())
