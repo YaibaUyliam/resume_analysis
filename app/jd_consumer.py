@@ -38,6 +38,7 @@ class JDConsumer:
             auto_offset_reset=os.environ["OFFSET"],
             group_id=os.environ["JD_GROUP_ID"],
             value_deserializer=lambda m: json.loads(m),
+            max_poll_interval_ms=1200000
         )
         self.consumer.subscribe(["recommend_cv_request"])
 
