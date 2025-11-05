@@ -38,6 +38,7 @@ class ResumeConsumer:
             auto_offset_reset=os.environ["OFFSET"],
             group_id=os.environ["GROUP_ID"],
             value_deserializer=lambda m: json.loads(m),
+            max_poll_interval_ms=1200000
         )
         self.consumer.subscribe(["extract_cv_request"])
 
