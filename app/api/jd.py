@@ -53,24 +53,23 @@ async def extract(
         top_cv_shorten = []
         for v in top_cv:
             try:
-                if v["match_score"] >= 20:
-                    source = v["_source"]
-                    filtered_dict = {}
+                source = v["_source"]
+                filtered_dict = {}
 
-                    filtered_dict["cv_id"] = source["id"]
-                    filtered_dict["cv_url"] = source["cv_url"]
-                    filtered_dict["content"] = source["content"]
-                    filtered_dict["year_of_experience"] = source.get(
-                        "year_of_experience"
-                    )
-                    filtered_dict["full_name"] = source["full_name"]
-                    filtered_dict["match_score"] = v["match_score"]
-                    filtered_dict["strong_matches"] = v["strong_matches"]
-                    filtered_dict["partial_matches"] = v["partial_matches"]
-                    filtered_dict["missing_keywords"] = v["missing_keywords"]
-                    filtered_dict["review"] = v["summary"]
+                filtered_dict["cv_id"] = source["id"]
+                filtered_dict["cv_url"] = source["cv_url"]
+                filtered_dict["content"] = source["content"]
+                filtered_dict["year_of_experience"] = source.get(
+                    "year_of_experience"
+                )
+                filtered_dict["full_name"] = source["full_name"]
+                filtered_dict["match_score"] = v["match_score"]
+                filtered_dict["strong_matches"] = v["strong_matches"]
+                filtered_dict["partial_matches"] = v["partial_matches"]
+                filtered_dict["missing_keywords"] = v["missing_keywords"]
+                filtered_dict["review"] = v["summary"]
 
-                    top_cv_shorten.append(filtered_dict)
+                top_cv_shorten.append(filtered_dict)
 
             except:
                 logger.error(traceback.format_exc())
