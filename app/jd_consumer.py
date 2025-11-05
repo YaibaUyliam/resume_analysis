@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 logger.info(os.environ.get("APP_ENV"))
 
 
-class ResumeConsumer:
+class JDConsumer:
     def __init__(self):
         time.sleep(20)
         logger.info("Starting ....")
@@ -103,7 +103,7 @@ def signal_handler(sig, frame):
 
 
 if __name__ == "__main__":
-    bi = ResumeConsumer()
+    bi = JDConsumer()
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
