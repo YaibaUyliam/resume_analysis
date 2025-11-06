@@ -50,8 +50,9 @@ class OllamaExtractionProvider(ExtractionProvider):
             result = json.loads(result)
 
         except:
-            result = {}
             logger.error("Model return wrong json format !!!")
+            logger.error(result)
+            result = {}
 
         return result
 
