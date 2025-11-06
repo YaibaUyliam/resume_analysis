@@ -2,32 +2,33 @@ SYSTEM = """You are an information extraction engine. Reply ONLY with valid JSON
 Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays if unknown):
 {
     "personal_info": {
-        "full_name": "",
-        "email": "",
-        "year_of_birth": "",
-        "gender": "",
-        "marital_status": "",
-        "address": "",
-        "nationality": "",
-        "desired_position": "",
-        "year_of_experience": "",
+        "full_name": "<Full name of Candidate>",
+        "email": "<Email of Candidate>",
+        "year_of_birth": "<Year of Birth>",
+        "age": "<Age>",
+        "gender": "<Gender or predict based on full name">,
+        "marital_status": "<Marital Status>",
+        "address": "<Hometown Adress>",
+        "nationality": "<Nationality>",
+        "desired_position": "<Desired Position>",
+        "year_of_experience": "<Years of Work Experience>",
         "languages": [],
-        "phone_number": "",
-        "current_location": "",
-        "available_date": "",
-        "expected_salary_min": "",
-        "expected_salary_max": "",
-        "cover_letter_url": "",
-        "github_url": "",
-        "linkedin_url": "",
+        "phone_number": "<Phone Numer of Candidate",
+        "current_location": "<Current Location",
+        "available_date": "<Available Date to Work>",
+        "expected_salary_min": "<Desired Salary Min",
+        "expected_salary_max": "<Desired Salary Max",
+        "cover_letter_url": Url of Coverletter",
+        "github_url": Url of github",
+        "linkedin_url": "<Url of linkedin",
         "summary_personal_info": "<summary_personal_info>"
     },
     "education": [
         {
-            "school_name": "",
-            "major": "",
-            "degree": "",
-            "duration": "",
+            "school_name": "<Name of University or Name of College",
+            "major": "<Major>",
+            "degree": "<Degree>",
+            "duration": "<Duration>",
             "summary_education": "<summary_education>"
         }
     ],
@@ -48,10 +49,10 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
     ],
     "experience": [
         {
-            "company": "",
-            "position": "",
-            "duration": "",
-            "job_description": ""
+            "company": "<Company Name>",
+            "position": "<Job Position>",
+            "duration": "<Duration>",
+            "job_description": "<Job Detail Descriptions>"
         },
         {
             "summary_experience": "<summary_experience>"
@@ -59,22 +60,24 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
     ],
     "project": [
         {
-            "proj_name": "",
-            "proj_company": "",
-            "proj_position": "",
-            "duration": "",
-            "proj_tech": "",
-            "proj_description": ""
+            "proj_name": "<Project Name>",
+            "proj_company": "<Company Name Implementing The Project>",
+            "proj_position": "<Project Position>",
+            "duration": "<Duration>",
+            "proj_tech": "<Technicals Used in The Project>",
+            "proj_description": "<Job Detail Descriptions>",
         }
     ],
     "extracted_keywords": []
 }
 
+
 Guidelines:
 1. In extracted_keywords field, focus on technical skills, programming languages, frameworks, tools, platforms, certifications, and job title. Do not include full sentences or soft skills unless they are critical IT terms (e.g., "Agile", "Scrum").
 2. Set personal_info[0].languages to an array of spoken language names such as 'English', 'Chinese', 'Vietnamese'. Prefer canonical names; do not include proficiency words like 'fluent'.
 3. Never invent facts; base every field strictly on the resume text.
-4. "duration" only contains information related to time (year, month, day), does not add or deduce words.
+4. "duration" only contains information related to time (year, month, day), does not add or deduce words. If there is a specific time, take it (Example: 2008/1-2014/12, 2015/1-至今)
+5. Do not deduce in year_of_birth field. 
 """
 
 PROMPT = "Resume:\n"
