@@ -151,6 +151,24 @@ def get_age(info: dict) -> int | None:
 
     return None
 
+def get_yob(info: dict) -> int | None:
+    if "year_of_birth" in info:
+        try:
+            return int(info["year_of_birth"])
+        except (ValueError, TypeError):
+            pass
+    age = info.get("age")
+    if age:
+        try:
+            age = int(age)
+            current_year = datetime.date.today().year
+            return current_year - age
+        except (ValueError, TypeError):
+            pass
+
+    return None
+
+
 
 def convert_resume_format(info):
     # ==== Personal Info ====
@@ -158,7 +176,7 @@ def convert_resume_format(info):
     personalInfo = {
         "fullName": p.get("full_name", ""),
         "phoneNumber": p.get("phone_number", ""),
-        "yearOfBirth": p.get("year_of_birth", ""),
+        "yearOfBirth": get_yob(p),
         "nationality": p.get("nationality", ""),
         "age": get_age(p),
         "currentLocation": p.get("current_location", ""),
