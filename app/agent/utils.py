@@ -24,18 +24,11 @@ def convert_duration_to_dates(duration: str):
         .replace("——", "-")
         .replace("––", "-")
         .replace("~", "-")
-        .replace(" ", "")
         .strip()
     )
     if "-" not in duration:
         return duration, None
-    # start, end = [p.strip() for p in duration.split("-", 1)]
-    parts = duration.split("-")
-    if len(parts) > 2:
-        start = "-".join(parts[:2])  
-        end = "-".join(parts[2:])    
-    else:
-        start, end = [p.strip() for p in duration.split("-", 1)]
+    start, end = [p.strip() for p in duration.split("-", 1)]
     # start = start.replace(".", "-")
 
     month_map = {
@@ -150,24 +143,6 @@ def get_age(info: dict) -> int | None:
             pass
 
     return None
-
-def get_yob(info: dict) -> int | None:
-    if "year_of_birth" in info:
-        try:
-            return int(info["year_of_birth"])
-        except (ValueError, TypeError):
-            pass
-    age = info.get("age")
-    if age:
-        try:
-            age = int(age)
-            current_year = datetime.date.today().year
-            return current_year - age
-        except (ValueError, TypeError):
-            pass
-
-    return None
-
 
 
 def convert_resume_format(info):

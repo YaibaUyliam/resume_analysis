@@ -177,13 +177,6 @@ class JDService:
                 vector=emb_res[0],
                 job_name=gen_res["job_name"],
             )
-            top_cv_id = []
-            for v in cv_matcher:
-                top_cv_id.append(v["_source"]["id"])
-            logger.info(f"Top CV ID: {top_cv_id}")
-            
-            ## Function check if run review or not
-            ####
 
             cv_top_k_review = await self.review(
                 model_gen, jd_text, gen_res["extracted_keywords"], cv_matcher
@@ -193,6 +186,11 @@ class JDService:
                 cv_top_k_review, key=lambda person: person["match_score"], reverse=True
             )
             cv_top_k_review = [v for v in cv_top_k_review if v["match_score"] >= 20]
+
+            top_cv_id = []
+            for v in cv_top_k_review:
+                top_cv_id.append(v["_source"]["id"])
+            logger.info(f"Top CV ID: {top_cv_id}")
 
             if jd_id:
                 logger.info("Saving resume ....")
