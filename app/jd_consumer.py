@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 logger.info(os.environ.get("APP_ENV"))
 
 
-class JDConsumer:
+class ResumeConsumer:
     def __init__(self):
         time.sleep(20)
         logger.info("Starting ....")
@@ -38,7 +38,6 @@ class JDConsumer:
             auto_offset_reset=os.environ["OFFSET"],
             group_id=os.environ["JD_GROUP_ID"],
             value_deserializer=lambda m: json.loads(m),
-            max_poll_interval_ms=1200000
         )
         self.consumer.subscribe(["recommend_cv_request"])
 
@@ -104,7 +103,7 @@ def signal_handler(sig, frame):
 
 
 if __name__ == "__main__":
-    bi = JDConsumer()
+    bi = ResumeConsumer()
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
