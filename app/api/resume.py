@@ -85,12 +85,12 @@ async def extract(
     if prompt_file:
         logger.info("Receive prompt from user")
         prompt = await prompt_file.read()
-        prompt = prompt.decode("utf-8")
+        sys_mess = prompt.decode("utf-8")
 
     try:
         resume_service = ResumeService()
         gen_res, gen_res_format = await resume_service.extract_and_store(
-            contents, prompt, file_name, cv_id
+            contents, sys_mess, file_name, cv_id
         )
 
         return JSONResponse(
