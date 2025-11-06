@@ -176,7 +176,7 @@ def convert_resume_format(info):
     personalInfo = {
         "fullName": p.get("full_name", ""),
         "phoneNumber": p.get("phone_number", ""),
-        "yearOfBirth": p.get("year_of_birth", ""),
+        "yearOfBirth": get_yob(p),
         "nationality": p.get("nationality", ""),
         "age": get_age(p),
         "currentLocation": p.get("current_location", ""),
