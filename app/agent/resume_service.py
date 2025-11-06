@@ -46,15 +46,15 @@ class ResumeService:
         logger.info(resp)
         await self.es_client.close()
 
-    async def extract_and_store(self, contents, prompt, file_name, cv_id=None):
+    async def extract_and_store(self, contents, sys_mess, file_name, cv_id=None):
         model_gen = await self.generation_manager.init_model()
         model_emb = await self.embedding_manager.init_model()
 
-        if prompt is None:
-            prompt = PROMPT
+        if sys_mess is None:
+            sys_mess = SYSTEM
 
         suffix = "." + file_name.split(".")[-1]
-        gen_res, resume_text = await model_gen(contents, prompt, SYSTEM, suffix)
+        gen_res, resume_text = await model_gen(contents, PROMPT, sys_mess, suffix)
         logger.info(gen_res)
         gen_res_format = convert_resume_format(gen_res)
 
