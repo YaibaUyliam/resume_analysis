@@ -81,7 +81,7 @@ async def extract(
 
     logger.info(file_name)
 
-    prompt = None
+    sys_mess = None
     if prompt_file:
         logger.info("Receive prompt from user")
         prompt = await prompt_file.read()
