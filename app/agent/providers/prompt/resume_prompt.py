@@ -21,15 +21,15 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
         "cover_letter_url": <"Url of Coverletter>",
         "github_url": "<Url of github>",
         "linkedin_url": "<Url of linkedin>",
-        "summary_personal_info": "<summary_personal_info>"
+        "summary_personal_info": "<Summary personal info>"
     },
     "education": [
         {
-            "school_name": "<Name of University or Name of College",
+            "school_name": "<Name of University or Name of College>",
             "major": "<Major>",
             "degree": "<Degree>",
             "duration": "<Duration>",
-            "summary_education": "<summary_education>"
+            "summary_education": "<Summary education>"
         }
     ],
     "certificates": [
@@ -44,7 +44,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
         {
             "skill_name": "",
             "proficiency": "<proficiency>",
-            "summary_skill": "<summary_skill>"
+            "summary_skill": "<Summary skill>"
         }
     ],
     "experience": [
@@ -55,7 +55,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
             "job_description": "<Job Detail Descriptions>"
         },
         {
-            "summary_experience": "<summary_experience>"
+            "summary_experience": "<Summary Experience>"
         }
     ],
     "project": [
