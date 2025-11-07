@@ -77,7 +77,7 @@ Guidelines:
 2. Set personal_info[0].languages to an array of spoken language names such as 'English', 'Chinese', 'Vietnamese'. Prefer canonical names; do not include proficiency words like 'fluent'.
 3. Never invent facts; base every field strictly on the resume text.
 4. "duration" only contains information related to time (year, month, day), does not add or deduce words. If there is a specific time, take it (Example: 2008/1-2014/12, 2015/1-至今).
-5. Do not deduce personal_info[0].year_of_birth field. 
+5. Do not deduce personal_info.year_of_birth field. 
 """
 
 PROMPT = "Resume:\n"
