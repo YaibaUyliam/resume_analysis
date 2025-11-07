@@ -238,7 +238,8 @@ def convert_resume_format(info):
         startDate, endDate = convert_duration_to_dates(e.get("duration", ""))
         company = (e.get("company") or "").strip()
         position = (e.get("position") or "").strip()
-        if not company and not position and not startDate and not endDate:
+        jobDescription = (e.get("job_description") or "").strip
+        if not company and not position and not startDate and not endDate and not jobDescription:
             continue
         experiences.append(
             {
@@ -250,7 +251,7 @@ def convert_resume_format(info):
                 "position": position,
                 "startDate": startDate,
                 "endDate": endDate,
-                # "description": e.get("job_description", "")
+                "jobDescription": e.get("job_description", "")
             }
         )
 
