@@ -6,7 +6,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
         "email": "<Email of Candidate>",
         "year_of_birth": "<Year of Birth>",
         "age": "<Age>",
-        "gender": "<Gender">,
+        "gender": "<Gender>",
         "marital_status": "<Marital Status>",
         "address": "<Hometown Adress>",
         "nationality": "<Nationality>",
@@ -18,7 +18,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
         "available_date": "<Available Date to Work>",
         "expected_salary_min": "<Desired Salary Min>",
         "expected_salary_max": "<Desired Salary Max>",
-        "cover_letter_url": <"Url of Coverletter>",
+        "cover_letter_url": "<Url of Coverletter>",
         "github_url": "<Url of github>",
         "linkedin_url": "<Url of linkedin>",
         "summary_personal_info": "<Summary personal info>"
@@ -37,7 +37,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
             "certificate_name": "",
             "issuer": "",
             "issued_date": "",
-            "file_url": "",
+            "file_url": ""
         }
     ],
     "skills": [
@@ -65,7 +65,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
             "proj_position": "<Project Position>",
             "duration": "<Duration>",
             "proj_tech": "<Technicals Used in The Project>",
-            "proj_description": "<Job Detail Descriptions>",
+            "proj_description": "<Job Detail Descriptions>"
         }
     ],
     "extracted_keywords": []
