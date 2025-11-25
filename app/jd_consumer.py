@@ -76,7 +76,7 @@ class JDConsumer:
                         logger.info(response.json())
                         results = response.json()
                         results["jd_id"] = jd_id
-                        results["systemJobId"] = item.get("systemJobId")
+                        results["system_job_id"] = item.get("systemJobId")
 
                         self.producer.send(topic=self.topic_send, value=results)
 
