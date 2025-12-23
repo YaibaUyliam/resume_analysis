@@ -135,9 +135,11 @@ def parse_array(value):
 
 
 def get_age(info: dict) -> int | None:
-    if "age" in info:
+    age = info.get("age")
+    if age:
         try:
-            return int(info["age"])
+            digits = ''.join(filter(str.isdigit, age))
+            return int(digits)
         except (ValueError, TypeError):
             pass
     yob = info.get("year_of_birth")
