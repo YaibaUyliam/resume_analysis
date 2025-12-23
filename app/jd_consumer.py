@@ -38,7 +38,7 @@ class JDConsumer:
             auto_offset_reset=os.environ["OFFSET"],
             group_id=os.environ["JD_GROUP_ID"],
             value_deserializer=lambda m: json.loads(m),
-            max_poll_interval_ms=1200000
+            max_poll_interval_ms=1200000,
         )
         self.consumer.subscribe(["recommend_cv_request"])
 
@@ -76,6 +76,7 @@ class JDConsumer:
                         logger.info(response.json())
                         results = response.json()
                         results["jd_id"] = jd_id
+                        results["system_job_id"] = item.get("systemJobId")
 
                         self.producer.send(topic=self.topic_send, value=results)
 
