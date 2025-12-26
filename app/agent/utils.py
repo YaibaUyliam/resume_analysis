@@ -162,9 +162,10 @@ def get_yob(info: dict) -> int | None:
     age = info.get("age")
     if age:
         try:
-            age = int(age)
+            digits = ''.join(filter(str.isdigit, age))
+            int_age = int(digits)
             current_year = datetime.date.today().year
-            return current_year - age
+            return current_year - int_age
         except (ValueError, TypeError):
             pass
 
