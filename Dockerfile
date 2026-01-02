@@ -25,7 +25,6 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
 
 WORKDIR /env
-COPY ./ckpts /env
 
 # Stage 2: Pull models
 FROM yaibawiliam/ollama:v0.12.6.dev AS models
@@ -35,9 +34,11 @@ RUN nohup bash -c "ollama serve &" && sleep 5 \
 # Final stage
 FROM app
 COPY --from=models /root/.ollama/models /root/.ollama/models
+COPY ./ckpts /env/ckpts/
 COPY ./pyproject.toml /env
 RUN uv sync
 COPY ./app /env/app/
 COPY ./entrypoint.sh /env
+COPY ./.env /env
 RUN chmod +x ./entrypoint.sh
 ENTRYPOINT ["./entrypoint.sh"]
