@@ -63,7 +63,10 @@ dependencies = [
     "transformers==4.53.3",
     "pypdf==6.0.0",
     "kafka-python==2.2.15",
-    "elasticsearch[async]==9.1.1"
+    "elasticsearch[async]==9.1.1",
+    "paddleocr==3.3.2",
+    "paddlepaddle-gpu==3.2.0",
+    "loguru"
 ]
 
 [build-system]
@@ -72,3 +75,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[[tool.uv.index]]
+name = "paddle-cuda"
+url = "https://www.paddlepaddle.org.cn/packages/stable/cu126/"
+explicit = true
+
+[tool.uv.sources]
+paddlepaddle-gpu = { index = "paddle-cuda" }
