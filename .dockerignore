@@ -1,7 +1,6 @@
 .venv/
 data/
 
-ckpts/
 docs/
 
 uv.lock

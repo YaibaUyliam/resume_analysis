@@ -1,8 +1,8 @@
 import json
-
-import logging
+import time
 import ollama
 
+from loguru import logger
 from typing import Any, Dict, List, Optional
 from fastapi.concurrency import run_in_threadpool
 
@@ -10,7 +10,7 @@ from .exceptions import GenerationError
 from .base import ExtractionProvider, EmbeddingProvider, remove_image_special
 
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class OllamaExtractionProvider(ExtractionProvider):
@@ -36,7 +36,7 @@ class OllamaExtractionProvider(ExtractionProvider):
         if model_name not in installed_ollama_models:
             raise GenerationError("Model has not installed !!!")
 
-    def _preprocess_data(self, resume_data: bytes|str, prompt: str, file_suffix: str):
+    def _preprocess_data(self, resume_data: bytes | str, prompt: str, file_suffix: str):
         converted_data = self.convert_data(resume_data, file_suffix)
         if not self.use_vision:
             data_input_model = prompt + converted_data
@@ -57,16 +57,21 @@ class OllamaExtractionProvider(ExtractionProvider):
         return result
 
     def _generate_sync(
-        self, resume_data: bytes|str, prompt: str, sys_mess: str, file_suffix: str
+        self, resume_data: bytes | str, prompt: str, sys_mess: str, file_suffix: str
     ) -> str:
         """
         Generate a response from the model.
         """
-        preprocessed_data, original_data = self._preprocess_data(resume_data, prompt, file_suffix)
+        time_s = time.time()
+        preprocessed_data, data_texts = self._preprocess_data(
+            resume_data, prompt, file_suffix
+        )
+        logger.info(f"Time preprocess data: {time.time()- time_s}")
+        logger.info(preprocessed_data)
 
         try:
             if not self.use_vision:
-                logger.info(sys_mess + "\n" + preprocessed_data)
+                # logger.info(sys_mess + "\n" + preprocessed_data)
 
                 response = self._client.generate(
                     system=sys_mess,
@@ -86,7 +91,7 @@ class OllamaExtractionProvider(ExtractionProvider):
 
             # logger.info(response["response"].strip())
 
-            return self._postprocess(response), original_data
+            return self._postprocess(response), data_texts
 
         except Exception as e:
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
