@@ -7,5 +7,4 @@ uv.lock
 ckpts/
 __pycache__/
 data/
-
-test.py
+tests/

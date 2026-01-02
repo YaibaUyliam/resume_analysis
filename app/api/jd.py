@@ -1,7 +1,6 @@
-import logging
-import requests
 import traceback
 
+from loguru import logger
 from fastapi import APIRouter, UploadFile, HTTPException, Request, status, Form, File
 from fastapi.responses import JSONResponse
 from typing import Optional
@@ -10,7 +9,7 @@ from ..agent import JDService
 
 
 jd_matcher_router = APIRouter()
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 @jd_matcher_router.post("/upload")

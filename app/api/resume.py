@@ -1,12 +1,9 @@
-import logging
+# import logging
 import traceback
-
-# from PIL import Image
-# from io import BytesIO
-# import base64
 import json
 import requests
 
+from loguru import logger
 from fastapi import APIRouter, UploadFile, HTTPException, Request, status, Form, File
 from fastapi.responses import JSONResponse
 from typing import Optional
@@ -15,7 +12,7 @@ from ..agent import ResumeService
 
 
 resume_extract_router = APIRouter()
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 # def encode_image(pil_image: Image.Image):
