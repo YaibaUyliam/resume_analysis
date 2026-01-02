@@ -15,6 +15,7 @@ apt update -y && apt upgrade -y && apt install -y --no-install-recommends  \
     software-properties-common \
     poppler-utils \
     build-essential \
+    libgl1 \
 && rm -rf /var/lib/apt/lists/*
 EOF
 RUN ln -s /usr/bin/python3 /usr/bin/python
@@ -24,6 +25,7 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
 
 WORKDIR /env
+COPY ./ckpts /env
 
 # Stage 2: Pull models
 FROM yaibawiliam/ollama:v0.12.6.dev AS models
@@ -35,6 +37,7 @@ FROM app
 COPY --from=models /root/.ollama/models /root/.ollama/models
 COPY ./pyproject.toml /env
 RUN uv sync
-COPY . /env
+COPY ./app /env/app/
+COPY ./entrypoint.sh /env
 RUN chmod +x ./entrypoint.sh
 ENTRYPOINT ["./entrypoint.sh"]
