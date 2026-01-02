@@ -17,11 +17,12 @@ import requests
 # import torchvision
 from packaging import version
 from PIL import Image
+from loguru import logger
 # from torchvision import io, transforms
 # from torchvision.transforms import InterpolationMode
 
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 IMAGE_FACTOR = 28
 MIN_PIXELS = 4 * 28 * 28

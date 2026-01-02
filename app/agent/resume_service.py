@@ -2,6 +2,8 @@ import logging
 import traceback
 import re
 import os
+
+from loguru import logger
 from datetime import datetime, timezone, timedelta
 from elasticsearch import Elasticsearch, AsyncElasticsearch
 
@@ -9,7 +11,7 @@ from .manager import GenerationManager, EmbeddingManager
 from .utils import convert_resume_format
 from .providers.prompt.resume_prompt import PROMPT, SYSTEM, TASK
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class ResumeService:
@@ -55,7 +57,7 @@ class ResumeService:
 
         suffix = "." + file_name.split(".")[-1]
         gen_res, resume_text = await model_gen(contents, PROMPT, sys_mess, suffix)
-        logger.info(gen_res)
+        # logger.info(gen_res)
         gen_res_format = convert_resume_format(gen_res)
 
         emb_res = await model_emb([resume_text], TASK)

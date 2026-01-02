@@ -1,5 +1,5 @@
-import logging
 import re
+from loguru import logger
 
 from transformers import (
     AutoProcessor,
@@ -13,7 +13,7 @@ from .prompt import PROMPT
 from .base import ExtractionProvider, EmbeddingProvider, remove_image_special
 
 
-logger = logging.getLogger(__name__)
+# 
 
 
 def create_chat_template(data_convert: str | list[str], promtp: str):

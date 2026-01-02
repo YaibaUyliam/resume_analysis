@@ -1,7 +1,8 @@
-import logging
 import traceback
 import re
 import os
+
+from loguru import logger
 from datetime import datetime, timezone, timedelta
 from elasticsearch import Elasticsearch, AsyncElasticsearch
 
@@ -11,7 +12,7 @@ from .providers.prompt.jd_prompt import PROMPT, SYSTEM, TASK
 from .providers.prompt.resume_review import PROMPT_REVIEW, SYSTEM_REVIEW
 
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class JDService:

@@ -4,8 +4,9 @@ import traceback
 import os
 import time
 import requests
-
 import signal
+
+from loguru import logger
 from multiprocessing.pool import ThreadPool
 from threading import Event, Lock
 
@@ -18,8 +19,8 @@ from .core import setup_logging
 if os.environ.get("APP_ENV") != "production":
     load_dotenv("./.env")
 
-setup_logging()
-logger = logging.getLogger(__name__)
+# setup_logging()
+# logger = logging.getLogger(__name__)
 logger.info(os.environ.get("APP_ENV"))
 
 
@@ -94,13 +95,13 @@ class JDConsumer:
 
 
 def signal_handler(sig, frame):
-    print("Ctrl+C received ...")
+    logger.info("Ctrl+C received ...")
 
     bi.stop_event.set()
     bi.pool.close()
     bi.pool.join()
 
-    print("All threads are done. Exiting.")
+    logger.info("All threads are done. Exiting.")
     logger.info("All threads are done. Exiting.")
 
 
