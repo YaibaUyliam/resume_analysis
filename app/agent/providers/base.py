@@ -101,14 +101,6 @@ class ExtractionProvider(ABC):
         else:
             self.use_vision = False
             self.md = MarkItDown(enable_plugins=False)
-            self.ocr = PaddleOCR(
-                use_doc_orientation_classify=False,
-                use_doc_unwarping=False,
-                use_textline_orientation=False,
-                lang="ch",
-                text_detection_model_dir="./ckpts/PP-OCRv5_server_det",
-                text_recognition_model_dir="./ckpts/PP-OCRv5_server_rec",
-            )
 
     def convert_data(self, data: bytes | str, file_suffix: str):
         if self.use_vision:
@@ -118,11 +110,20 @@ class ExtractionProvider(ABC):
             return data
 
         if isinstance(data, bytes) and file_suffix == ".pdf":
+            ocr = PaddleOCR(
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+                lang="ch",
+                text_detection_model_dir="./ckpts/PP-OCRv5_server_det",
+                text_recognition_model_dir="./ckpts/PP-OCRv5_server_rec",
+            )
+
             with tempfile.NamedTemporaryFile(delete=True, suffix=".pdf") as temp_pdf:
                 temp_pdf.write(data)
                 temp_pdf.flush()
 
-                result = self.ocr.predict(temp_pdf.name)
+                result = ocr.predict(temp_pdf.name)
 
             text_by_line = ""
             for res in result:
