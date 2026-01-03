@@ -1,6 +1,8 @@
-from contextlib import asynccontextmanager
+import os
+import asyncio
 
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
 
 from .core import setup_logging
 from .api import health_check, router_func
@@ -31,5 +33,13 @@ def create_app() -> FastAPI:
 
     app.include_router(health_check)
     app.include_router(router_func)
+
+    global_lock = asyncio.Lock()
+    if int(os.environ.get("REQUEST_LIMIT", 0)) == 1:
+
+        @app.middleware("http")
+        async def single_request_middleware(request, call_next):
+            async with global_lock:
+                return await call_next(request)
 
     return app
