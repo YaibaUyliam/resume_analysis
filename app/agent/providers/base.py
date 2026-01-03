@@ -117,7 +117,7 @@ class ExtractionProvider(ABC):
         if isinstance(data, str):
             return data
 
-        if file_suffix == ".pdf":
+        if isinstance(data, bytes) and file_suffix == ".pdf":
             with tempfile.NamedTemporaryFile(delete=True, suffix=".pdf") as temp_pdf:
                 temp_pdf.write(data)
                 temp_pdf.flush()
