@@ -2,6 +2,8 @@ from io import BytesIO
 import base64
 import tempfile
 import re
+import subprocess
+import os
 
 from pdf2image import convert_from_bytes
 from PIL import Image
@@ -110,6 +112,12 @@ class ExtractionProvider(ABC):
             return data
 
         if isinstance(data, bytes) and file_suffix == ".pdf":
+            result = subprocess.run(
+                ["ollama", "stop", os.environ.get("LL_MODEL")],
+                capture_output=True,
+                text=True,
+            )
+
             ocr = PaddleOCR(
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
