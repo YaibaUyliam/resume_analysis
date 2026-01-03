@@ -49,33 +49,9 @@ async def extract(
             contents, prompt, file_name, jd_id
         )
 
-        top_cv_shorten = []
-        for v in top_cv:
-            try:
-                source = v["_source"]
-                filtered_dict = {}
-
-                filtered_dict["cv_id"] = source["id"]
-                filtered_dict["cv_url"] = source["cv_url"]
-                filtered_dict["content"] = source["content"]
-                filtered_dict["year_of_experience"] = source.get(
-                    "year_of_experience"
-                )
-                filtered_dict["full_name"] = source["full_name"]
-                filtered_dict["match_score"] = v["match_score"]
-                filtered_dict["strong_matches"] = v["strong_matches"]
-                filtered_dict["partial_matches"] = v["partial_matches"]
-                filtered_dict["missing_keywords"] = v["missing_keywords"]
-                filtered_dict["review"] = v["summary"]
-
-                top_cv_shorten.append(filtered_dict)
-
-            except:
-                logger.error(traceback.format_exc())
-
         return JSONResponse(
             content={
-                "top_cv": top_cv_shorten,
+                "top_cv": top_cv,
                 "info_extract_raw": gen_res,
             }
         )
