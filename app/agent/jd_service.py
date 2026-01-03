@@ -82,7 +82,7 @@ class JDService:
         self.timezone = timezone(timedelta(hours=8))
 
     async def _store_jd(self, gen_res, emb_res, file_name, jd_id, jd_text):
-        minimum_years_of_experience = gen_res["minimum_years_of_experience"]
+        minimum_years_of_experience = gen_res.get("minimum_years_of_experience", "")
         if minimum_years_of_experience:
             match = re.search(r"\d+", str(minimum_years_of_experience))
             if match:
@@ -93,10 +93,10 @@ class JDService:
             "jd_url": file_name,
             "content": jd_text,
             "keywords": ", ".join(gen_res["extracted_keywords"]),
-            "job_name": gen_res["job_name"],
-            "job_description": gen_res["job_description"],
+            "job_name": gen_res.get("job_name", ""),
+            "job_description": gen_res.get("job_description", ""),
             "minimum_years_of_experience": minimum_years_of_experience,
-            "required_skills": gen_res["required_skills"],
+            "required_skills": gen_res.get("required_skills", ""),
             "embedding_vector": emb_res,
             "created_at": datetime.now(self.timezone).isoformat(),
         }
@@ -260,6 +260,7 @@ class JDService:
         # gen_res_format = convert_jd_format(gen_res)
         emb_res = await model_emb([jd_text], TASK, query=True)
 
+        cv_top_k_review = None
         ## Match and review
         if gen_res["extracted_keywords"]:
             cv_matcher = await self.match(
@@ -323,11 +324,12 @@ class JDService:
                     logger.info("Save data failed!!!!!!")
                     logger.error(traceback.format_exc())
 
+            cv_top_k_review = [asdict(v) for v in cv_top_k_review]
         else:
             logger.info("Can not get extracted keywords")
 
         await self.es_client.close()
-        return gen_res, [asdict(v) for v in cv_top_k_review]
+        return gen_res, cv_top_k_review
 
 
 if __name__ == "__main__":
