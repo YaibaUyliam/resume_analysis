@@ -49,9 +49,6 @@ def paddleocrv3_output_to_text(rec_polys, rec_texts, rec_scores):
     ocrOnly = {}
 
     for idx in range(len(rec_polys)):
-        if rec_scores[idx] < 0.3:
-            continue
-
         points = np.array(rec_polys[idx]).astype(np.int32).tolist()
         x1 = min(points[0][0], points[1][0], points[2][0], points[3][0])
         x2 = max(points[0][0], points[1][0], points[2][0], points[3][0])
@@ -61,8 +58,9 @@ def paddleocrv3_output_to_text(rec_polys, rec_texts, rec_scores):
 
         if idx == 0:
             ocrOnly[0] = [[x1, y1, x2, y2]]
-            text_by_line += rec_texts[idx]
-            text_by_line += " "
+            if rec_scores[idx] > 0.3:
+                text_by_line += rec_texts[idx]
+                text_by_line += " "
 
         if idx > 0:
             sameLine = False
@@ -72,8 +70,9 @@ def paddleocrv3_output_to_text(rec_polys, rec_texts, rec_scores):
                     if y1_l < y_c < y2_l:
                         sameLine = True
                         ocrOnly[key].append([x1, y1, x2, y2])
-                        text_by_line += rec_texts[idx]
-                        text_by_line += " "
+                        if rec_scores[idx] > 0.3:
+                            text_by_line += rec_texts[idx]
+                            text_by_line += " "
 
                     if sameLine:
                         break
@@ -82,10 +81,11 @@ def paddleocrv3_output_to_text(rec_polys, rec_texts, rec_scores):
             if sameLine == False:
                 key = [key for key in ocrOnly][-1] + 1
                 ocrOnly[key] = [[x1, y1, x2, y2]]
-                text_by_line = text_by_line.strip()
-                text_by_line += "\n"
-                text_by_line += rec_texts[idx]
-                text_by_line += " "
+                if rec_scores[idx] > 0.3:
+                    text_by_line = text_by_line.strip()
+                    text_by_line += "\n"
+                    text_by_line += rec_texts[idx]
+                    text_by_line += " "
 
     return text_by_line.strip()
 
