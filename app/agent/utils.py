@@ -119,7 +119,9 @@ def parse_float(value: str):
     if not value or str(value).strip() == "":
         return None
     try:
-        return float(value)
+        digits = ''.join(filter(str.isdigit, value ))
+        return float(digits)
+
     except ValueError:
         return None
 
