@@ -4,7 +4,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
     "personal_info": {
         "full_name": "<Full name of Candidate>",
         "email": "<Email of Candidate>",
-        "year_of_birth": "<Year of Birth>",
+        "year_of_birth": "",
         "age": "<Age>",
         "gender": "<Gender>",
         "marital_status": "<Marital Status>",
@@ -65,7 +65,7 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
             "proj_position": "<Project Position>",
             "duration": "<Duration>",
             "proj_tech": "<Technicals Used in The Project>",
-            "proj_description": "<Job Detail Descriptions>"
+            "proj_description": "<Project Detail Descriptions>"
         }
     ],
     "extracted_keywords": []
@@ -77,7 +77,9 @@ Guidelines:
 2. Set personal_info.languages to an array of spoken language names such as 'English', 'Chinese', 'Vietnamese'. Prefer canonical names; do not include proficiency words like 'fluent'.
 3. Never invent facts; base every field strictly on the resume text.
 4. "duration" only contains information related to time (year, month, day), does not add or deduce words. If there is a specific time, take it (Example: 2008/1-2014/12, 2015/1-至今).
-5. Do not deduce personal_info.year_of_birth field. 
+5. At personal_info.year_of_birth field, only get the year if it has in the resume text, do not deduce it. 
+ 
+
 """
 
 PROMPT = "Resume:\n"
