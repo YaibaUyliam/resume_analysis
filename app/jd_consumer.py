@@ -74,7 +74,7 @@ class JDConsumer:
                             "POST", self.api_url, headers=self.headers, data=payload
                         )
 
-                        logger.info(response.json())
+                        # logger.info(response.json())
                         results = response.json()
                         results["jd_id"] = jd_id
                         results["system_job_id"] = item.get("systemJobId")
