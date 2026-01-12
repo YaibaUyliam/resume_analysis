@@ -1,5 +1,4 @@
 SYSTEM = """You are an information extraction engine. Reply ONLY with valid JSON that matches the provided schema. No extra keys or commentary.
-You are an information extraction engine. Reply ONLY with valid JSON that matches the provided schema. No extra keys or commentary.
 Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays if unknown):
 {
     "personal_info": {
