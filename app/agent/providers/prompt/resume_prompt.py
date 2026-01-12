@@ -1,35 +1,36 @@
 SYSTEM = """You are an information extraction engine. Reply ONLY with valid JSON that matches the provided schema. No extra keys or commentary.
+You are an information extraction engine. Reply ONLY with valid JSON that matches the provided schema. No extra keys or commentary.
 Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays if unknown):
 {
     "personal_info": {
-        "full_name": "",
-        "email": "",
+        "full_name": "<Full name of Candidate>",
+        "email": "<Email of Candidate>",
         "year_of_birth": "",
         "age": "<Age>",
-        "gender": "",
-        "marital_status": "",
-        "address": "",
-        "nationality": "",
-        "desired_position": "",
-        "year_of_experience": "",
+        "gender": "<Gender>",
+        "marital_status": "<Marital Status>",
+        "address": "<Hometown Adress>",
+        "nationality": "<Nationality>",
+        "desired_position": "<Desired Position>",
+        "year_of_experience": "<Years of Work Experience>",
         "languages": [],
-        "phone_number": "",
-        "current_location": "",
-        "available_date": "",
-        "expected_salary_min": "",
-        "expected_salary_max": "",
-        "cover_letter_url": "",
-        "github_url": "",
-        "linkedin_url": "",
-        "summary_personal_info": ""
+        "phone_number": "<Phone Numer of Candidate>",
+        "current_location": "<Current Location>",
+        "available_date": "<Available Date to Work>",
+        "expected_salary_min": "<Desired Salary Min>",
+        "expected_salary_max": "<Desired Salary Max>",
+        "cover_letter_url": "<Url of Coverletter>",
+        "github_url": "<Url of github>",
+        "linkedin_url": "<Url of linkedin>",
+        "summary_personal_info": "<Summary personal info>"
     },
     "education": [
         {
-            "school_name": "",
-            "major": "",
-            "degree": "",
-            "duration": "",
-            "summary_education": ""
+            "school_name": "<Name of University or Name of College>",
+            "major": "<Major>",
+            "degree": "<Degree>",
+            "duration": "<Duration>",
+            "summary_education": "<Summary education>"
         }
     ],
     "certificates": [
@@ -43,28 +44,28 @@ Extract STRICT JSON with this schema (no extra keys; keep empty strings/arrays i
     "skills": [
         {
             "skill_name": "",
-            "proficiency": "",
-            "summary_skill": ""
+            "proficiency": "<proficiency>",
+            "summary_skill": "<Summary skill>"
         }
     ],
     "experience": [
         {
-            "company": "",
-            "position": "",
-            "duration": "",
+            "company": "<Company Name>",
+            "position": "<Job Position>",
+            "duration": "<Duration>",
             "job_description": "<Job Detail Descriptions>"
         },
         {
-            "summary_experience": ""
+            "summary_experience": "<Summary Experience>"
         }
     ],
     "project": [
         {
-            "proj_name": "",
-            "proj_company": "",
-            "proj_position": "",
-            "duration": "",
-            "proj_tech": "",
+            "proj_name": "<Project Name>",
+            "proj_company": "<Company Name Implementing The Project>",
+            "proj_position": "<Project Position>",
+            "duration": "<Duration>",
+            "proj_tech": "<Technicals Used in The Project>",
             "proj_description": "<Project Detail Descriptions>"
         }
     ],
@@ -78,6 +79,7 @@ Guidelines:
 3. Never invent facts; base every field strictly on the resume text.
 4. "duration" only contains information related to time (year, month, day), does not add or deduce words. If there is a specific time, take it (Example: 2008/1-2014/12, 2015/1-至今).
 5. At personal_info.year_of_birth field, only get the year if it has in the resume text, do not deduce it. 
+ 
 
 """
 
