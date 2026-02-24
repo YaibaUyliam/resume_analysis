@@ -59,7 +59,9 @@ async def extract(
         file_name = cv_file.filename
 
     elif cv_url:
-        contents = requests.get(cv_url, timeout=30)
+        # contents = requests.get(cv_url, timeout=30)
+        headers = {"x-api-key": "CgLju4wmGd9ervXbhk2nJMDSsUzcRpPy"}
+        contents = requests.get(cv_url, headers=headers, timeout=30)
         contents.raise_for_status()
         contents = contents.content
         file_name = cv_url
