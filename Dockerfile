@@ -16,6 +16,7 @@ apt update -y && apt upgrade -y && apt install -y --no-install-recommends  \
     poppler-utils \
     build-essential \
     libgl1 \
+    libreoffice \
 && rm -rf /var/lib/apt/lists/*
 EOF
 RUN ln -s /usr/bin/python3 /usr/bin/python
