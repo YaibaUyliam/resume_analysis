@@ -90,6 +90,31 @@ def paddleocrv3_output_to_text(rec_polys, rec_texts, rec_scores):
     return text_by_line.strip()
 
 
+def convert_doc_to_docx(input_file):
+    input_path = os.path.abspath(input_file)
+    output_dir = os.path.dirname(input_path)
+
+    subprocess.run(
+        [
+            "libreoffice",
+            "--headless",
+            "--invisible",
+            "--norestore",
+            "--nolockcheck",
+            "--nodefault",
+            "--nofirststartwizard",
+            "--convert-to",
+            "docx",
+            "--outdir",
+            output_dir,
+            input_path,
+        ],
+        check=True,
+    )
+
+    return input_path.replace(".doc", ".docx")
+
+
 class ExtractionProvider(ABC):
     """
     Abstract base class for providers.
@@ -149,6 +174,9 @@ class ExtractionProvider(ABC):
                 temp_file.write(data)
                 temp_file.flush()
                 temp_path = temp_file.name
+
+                if file_suffix == ".doc":
+                    temp_path = convert_doc_to_docx(temp_path)
 
                 return self.md.convert(temp_path).text_content
 
