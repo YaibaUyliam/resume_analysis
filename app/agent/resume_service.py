@@ -6,12 +6,26 @@ import os
 from loguru import logger
 from datetime import datetime, timezone, timedelta
 from elasticsearch import Elasticsearch, AsyncElasticsearch
+from pydantic import BaseModel, Field
+from typing import List
 
 from .manager import GenerationManager, EmbeddingManager
 from .utils import convert_resume_format
 from .providers.prompt.resume_prompt import PROMPT, SYSTEM, TASK
 
-# logger = logging.getLogger(__name__)
+
+class ResumeSchema(BaseModel):
+    id: str
+    cv_url: str
+    content: str
+    keywords: str | None
+    year_of_experience: float | None
+    embedding_vector: List[float]
+    full_name: str | None
+    desired_position: str | None
+    created_at: str
+    updated_at: str
+    is_deleted: bool = False
 
 
 class ResumeService:
@@ -42,9 +56,14 @@ class ResumeService:
             "full_name": gen_res["personal_info"]["full_name"],
             "desired_position": gen_res["personal_info"].get("desired_position"),
             "created_at": datetime.now(self.timezone).isoformat(),
+            "updated_at": datetime.now(self.timezone).isoformat(),
         }
 
-        resp = await self.es_client.index(index=self.index_name, document=doc)
+        resume_extract_result = ResumeSchema(**doc)
+
+        resp = await self.es_client.index(
+            index=self.index_name, document=resume_extract_result.model_dump()
+        )
         logger.info(resp)
         await self.es_client.close()
 
@@ -65,7 +84,9 @@ class ResumeService:
         if cv_id:
             logger.info("Saving resume ....")
             try:
-                await self._store_resume(gen_res, emb_res[0], file_name, cv_id, resume_text)
+                await self._store_resume(
+                    gen_res, emb_res[0], file_name, cv_id, resume_text
+                )
             except:
                 logger.info("Save data failed!!!!!!")
                 logger.error(traceback.format_exc())
