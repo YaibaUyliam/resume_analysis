@@ -1,6 +1,8 @@
 import json
 import time
 import ollama
+import subprocess
+import os
 
 from loguru import logger
 from typing import Any, Dict, List, Optional
@@ -67,6 +69,12 @@ class OllamaExtractionProvider(ExtractionProvider):
         logger.info(f"Time preprocess data: {time.time()- time_s}")
         logger.info(preprocessed_data)
 
+        sub_result = subprocess.run(
+            ["ollama", "stop", os.environ.get("EMBEDDING_MODEL")],
+            capture_output=True,
+            text=True,
+        )
+
         try:
             if not self.use_vision:
                 # logger.info(sys_mess + "\n" + preprocessed_data)
@@ -130,6 +138,12 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
             raise GenerationError("Model has not installed !!!")
 
     def _embed_sync(self, input_data: list[str], task: str, query: bool) -> str:
+        sub_result = subprocess.run(
+            ["ollama", "stop", os.environ.get("LL_MODEL")],
+            capture_output=True,
+            text=True,
+        )
+
         preprocessed_data = []
 
         if query:

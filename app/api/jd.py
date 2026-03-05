@@ -1,11 +1,20 @@
 import traceback
 
 from loguru import logger
-from fastapi import APIRouter, UploadFile, HTTPException, Request, status, Form, File
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    HTTPException,
+    Request,
+    status,
+    Form,
+    File,
+    Depends,
+)
 from fastapi.responses import JSONResponse
 from typing import Optional
 
-from ..agent import JDService
+from app.agent import JDService, get_jd_service
 
 
 jd_matcher_router = APIRouter()
@@ -18,6 +27,7 @@ async def extract(
     jd_file: Optional[UploadFile] = File(None),
     prompt_file: Optional[UploadFile] = None,
     jd_id: Optional[str] = Form(None),
+    jd_service: JDService = Depends(get_jd_service),
 ):
     content_type = request.headers.get("content-type")
     if content_type and content_type.startswith("application/json"):
@@ -44,7 +54,6 @@ async def extract(
         prompt = prompt.decode("utf-8")
 
     try:
-        jd_service = JDService()
         gen_res, top_cv = await jd_service.extract_match_review(
             contents, prompt, file_name, jd_id
         )

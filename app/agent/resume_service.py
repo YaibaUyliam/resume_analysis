@@ -55,24 +55,25 @@ class ResumeService:
 
         self.timezone = timezone(timedelta(hours=8))
 
-    async def _store_resume(self, gen_res, emb_res, file_name, cv_id, resume_text):
+    async def _store_resume(self, gen_res, emb_res, file_name, cv_id, resume_data):
         year_of_experience = gen_res["personal_info"]["year_of_experience"]
         if year_of_experience:
             match = re.search(r"\d+", str(year_of_experience))
             if match:
                 year_of_experience = float(match.group(0))
 
+        time_current = datetime.now(self.timezone).isoformat()
         doc = {
             "id": cv_id,
             "cv_url": file_name,
-            "content": resume_text if isinstance(resume_text, str) else "",
+            "content": resume_data if isinstance(resume_data, str) else "",
             "keywords": ", ".join(gen_res["extracted_keywords"]),
             "year_of_experience": year_of_experience,
             "embedding_vector": emb_res,
             "full_name": gen_res["personal_info"]["full_name"],
             "desired_position": gen_res["personal_info"].get("desired_position"),
-            "created_at": datetime.now(self.timezone).isoformat(),
-            "updated_at": datetime.now(self.timezone).isoformat(),
+            "created_at": time_current,
+            "updated_at": time_current,
         }
 
         resume_extract_result = ResumeSchema(**doc)
@@ -81,6 +82,27 @@ class ResumeService:
             index=self.index_name, document=resume_extract_result.model_dump()
         )
         logger.info(resp)
+
+    async def del_cv(self, cv_id):
+        search_resp = await self.es_client.search(
+            index=self.index_name,
+            query={"term": {"id": cv_id}},
+            source=["_id"],
+        )
+
+        hits = search_resp["hits"]["hits"]
+        if not hits:
+            logger.info("CV not exist !!!!")
+            return None
+
+        es_id = hits[0]["_id"]
+        doc = {
+            "is_deleted": True,
+            "updated_at": datetime.now(self.timezone).isoformat(),
+        }
+        resp = await self.es_client.update(index=self.index_name, id=es_id, doc=doc)
+
+        return resp
 
     async def close(self):
         logger.info("close connection to ES")
@@ -94,7 +116,9 @@ class ResumeService:
                 "size": size,
                 "query": {
                     "script_score": {
-                        "query": {"match_all": {}},
+                        "query": {
+                            "bool": {"must_not": [{"term": {"is_deleted": True}}]}
+                        },
                         "script": {
                             "source": "cosineSimilarity(params.query_vector, 'embedding_vector') + 1.0",
                             "params": {"query_vector": query_vector},
@@ -109,11 +133,6 @@ class ResumeService:
     async def check_duplication(
         self, data, file_name
     ) -> tuple[dict, str | list[str], list[float]]:
-        sub_result = subprocess.run(
-            ["ollama", "stop", os.environ.get("LL_MODEL")],
-            capture_output=True,
-            text=True,
-        )
         suffix = "." + file_name.split(".")[-1]
         data_converted = self.preprocess_data.convert_data(data, suffix)
         emb_result = await self.model_embed([data_converted], TASK)
@@ -137,12 +156,6 @@ class ResumeService:
         return check_result.model_dump(), data_converted, emb_result
 
     async def extract(self, data, sys_mess, file_name):
-        sub_result = subprocess.run(
-            ["ollama", "stop", os.environ.get("EMBEDDING_MODEL")],
-            capture_output=True,
-            text=True,
-        )
-
         if sys_mess is None:
             sys_mess = SYSTEM
         suffix = "." + file_name.split(".")[-1]
@@ -156,12 +169,6 @@ class ResumeService:
 
     # Already convert data in step check duplication
     async def extract_and_store(self, data, file_name, cv_id, cv_embed):
-        sub_result = subprocess.run(
-            ["ollama", "stop", os.environ.get("EMBEDDING_MODEL")],
-            capture_output=True,
-            text=True,
-        )
-
         sys_mess = SYSTEM
         gen_res = await self.model_extract(data, PROMPT, sys_mess)
         gen_res_format = convert_resume_format(gen_res)

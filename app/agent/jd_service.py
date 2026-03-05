@@ -74,8 +74,10 @@ class MatcherData:
 
 class JDService:
     def __init__(self):
-        model_extract_name = os.environ["LL_MODEL"]
-        self.model_extract = OllamaExtractionProvider(model_extract_name)
+        self.preprocess_data = PreprocessData()
+
+        model_gen_name = os.environ["LL_MODEL"]
+        self.model_gen = OllamaExtractionProvider(model_gen_name)
         model_embed_name = os.environ["EMBEDDING_MODEL"]
         self.model_embed = OllamaEmbeddingProvider(model_embed_name)
 
@@ -87,7 +89,7 @@ class JDService:
 
         self.timezone = timezone(timedelta(hours=8))
 
-    async def _store_jd(self, gen_res, emb_res, file_name, jd_id, jd_text):
+    async def _store_jd(self, gen_res, emb_res, file_name, jd_id, jd_data):
         minimum_years_of_experience = gen_res.get("minimum_years_of_experience", "")
         if minimum_years_of_experience:
             match = re.search(r"\d+", str(minimum_years_of_experience))
@@ -97,7 +99,7 @@ class JDService:
         doc = {
             "id": jd_id,
             "jd_url": file_name,
-            "content": jd_text,
+            "content": jd_data if isinstance(jd_data, str) else "",
             "keywords": ", ".join(gen_res["extracted_keywords"]),
             "job_name": gen_res.get("job_name", ""),
             "job_description": gen_res.get("job_description", ""),
@@ -160,9 +162,18 @@ class JDService:
             "_source": {"excludes": ["embedding_vector"]},
             "size": size,
             "query": {
-                "multi_match": {
-                    "query": query_content,
-                    "fields": ["keywords", "desired_position^2"],
+                "bool": {
+                    "must": [
+                        {
+                            "multi_match": {
+                                "query": query_content,
+                                "fields": ["keywords", "desired_position^2"],
+                            }
+                        }
+                    ],
+                    "filter": [
+                        {"bool": {"must_not": [{"term": {"is_deleted": True}}]}}
+                    ],
                 }
             },
         }
@@ -201,7 +212,7 @@ class JDService:
         return keywords_search_res
 
     async def review(
-        self, model_gen, jd_content, jd_keywords, cv_list: list[MatcherData]
+        self, jd_content, jd_keywords, cv_list: list[MatcherData]
     ) -> list[MatcherData]:
         results = []
 
@@ -213,7 +224,7 @@ class JDService:
                 extracted_resume_keywords=resume.keywords,
             )
 
-            gen_res, _ = await model_gen("", prompt, SYSTEM_REVIEW, None)
+            gen_res = await self.model_gen("", prompt, SYSTEM_REVIEW)
             resume.merge_model_result_and_cv_data_original(gen_res)
             results.append(resume)
 
@@ -246,13 +257,10 @@ class JDService:
         return dict2str
 
     async def extract_match_review(
-        self, contents: bytes | dict, prompt, file_name, jd_id=None
+        self, data: bytes | dict, prompt, file_name, jd_id=None
     ):
-        if isinstance(contents, dict):
-            contents = await self._pre_data(contents)
-
-        model_gen = await self.generation_manager.init_model()
-        model_emb = await self.embedding_manager.init_model()
+        if isinstance(data, dict):
+            data = await self._pre_data(data)
 
         if prompt is None:
             prompt = PROMPT
@@ -261,23 +269,28 @@ class JDService:
             suffix = "." + file_name.split(".")[-1]
         else:
             suffix = None
-        gen_res, jd_text = await model_gen(contents, prompt, SYSTEM, suffix)
+
+        data_converted = self.preprocess_data.convert_data(data, suffix)
+        gen_res = await self.model_gen(data_converted, prompt, SYSTEM)
 
         # gen_res_format = convert_jd_format(gen_res)
-        emb_res = await model_emb([jd_text], TASK, query=True)
+        emb_result = await self.model_embed([data_converted], TASK, query=True)
 
         cv_top_k_review = None
         ## Match and review
         if gen_res["extracted_keywords"]:
             cv_matcher = await self.match(
                 keywords=", ".join(gen_res["extracted_keywords"]),
-                vector=emb_res[0],
+                vector=emb_result[0],
                 job_name=gen_res["job_name"],
             )
 
             ## Function check if run review or not
-            search_result_past = await self._get_search_result(jd_id)
-            logger.info(search_result_past)
+            if jd_id is None:
+                search_result_past = []
+            else:
+                search_result_past = await self._get_search_result(jd_id)
+
             if len(search_result_past) > 0:
                 search_result_past = search_result_past[0]["_source"]
             else:
@@ -303,8 +316,7 @@ class JDService:
             logger.info(len(cv_matcher_reviewed))
             ## Review CV
             cv_top_k_review = await self.review(
-                model_gen,
-                jd_text,
+                data_converted,
                 gen_res["extracted_keywords"],
                 cv_matcher_not_reviewed,
             )
@@ -322,7 +334,9 @@ class JDService:
             if jd_id:
                 logger.info("Saving resume ....")
                 try:
-                    await self._store_jd(gen_res, emb_res[0], file_name, jd_id, jd_text)
+                    await self._store_jd(
+                        gen_res, emb_result[0], file_name, jd_id, data_converted
+                    )
                     await self._store_search_result(jd_id, cv_top_k_review)
                     await self.es_client.close()
 
