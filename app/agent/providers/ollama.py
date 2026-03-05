@@ -14,7 +14,7 @@ from .base import ExtractionProvider, EmbeddingProvider, remove_image_special
 
 
 class OllamaExtractionProvider(ExtractionProvider):
-    def __init__(self, model_name: str, use_vision: int, host: Optional[str] = None):
+    def __init__(self, model_name: str, use_vision: bool = False, host: Optional[str] = None):
         logger.info("Running model with Ollama ........")
         super().__init__(use_vision)
 
@@ -36,12 +36,12 @@ class OllamaExtractionProvider(ExtractionProvider):
         if model_name not in installed_ollama_models:
             raise GenerationError("Model has not installed !!!")
 
-    def _preprocess_data(self, resume_data: bytes | str, prompt: str, file_suffix: str):
-        converted_data = self.convert_data(resume_data, file_suffix)
-        if not self.use_vision:
-            data_input_model = prompt + converted_data
+    def _preprocess_data(self, resume_data: bytes | str, prompt: str):
+        # converted_data = self.convert_data(resume_data, file_suffix)
+        # if not self.use_vision:
+        data_input_model = prompt + resume_data
 
-        return data_input_model, converted_data
+        return data_input_model
 
     def _postprocess(self, model_res: str):
         result = remove_image_special(model_res["response"].strip())
@@ -57,15 +57,13 @@ class OllamaExtractionProvider(ExtractionProvider):
         return result
 
     def _generate_sync(
-        self, resume_data: bytes | str, prompt: str, sys_mess: str, file_suffix: str
+        self, resume_data: bytes | str, prompt: str, sys_mess: str
     ) -> str:
         """
         Generate a response from the model.
         """
         time_s = time.time()
-        preprocessed_data, data_texts = self._preprocess_data(
-            resume_data, prompt, file_suffix
-        )
+        preprocessed_data = self._preprocess_data(resume_data, prompt)
         logger.info(f"Time preprocess data: {time.time()- time_s}")
         logger.info(preprocessed_data)
 
@@ -89,18 +87,19 @@ class OllamaExtractionProvider(ExtractionProvider):
                     images=preprocessed_data,
                 )
 
-            # logger.info(response["response"].strip())
+            input_tokens = response.get("prompt_eval_count")
+            output_tokens = response.get("eval_count")
+            logger.info(f"Token Input number: {input_tokens}")
+            logger.info(f"Token Output number: {output_tokens}")
 
-            return self._postprocess(response), data_texts
+            return self._postprocess(response)
 
         except Exception as e:
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
 
-    async def __call__(
-        self, resume_data: bytes, prompt: str, sys_mess: str, file_suffix: str
-    ) -> str:
+    async def __call__(self, resume_data: bytes, prompt: str, sys_mess: str) -> str:
         return await run_in_threadpool(
-            self._generate_sync, resume_data, prompt, sys_mess, file_suffix
+            self._generate_sync, resume_data, prompt, sys_mess
         )
 
 

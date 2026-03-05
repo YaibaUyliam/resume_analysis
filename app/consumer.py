@@ -1,5 +1,4 @@
 import json
-import logging
 import traceback
 import os
 import time
@@ -13,15 +12,13 @@ from threading import Event, Lock
 from kafka import KafkaConsumer, KafkaProducer
 from dotenv import load_dotenv
 
-from .core import setup_logging
-
 
 if os.environ.get("APP_ENV") != "production":
     load_dotenv("./.env")
 
-#setup_logging()
-#logger = logging.getLogger(__name__)
-#logger.info(os.environ.get("APP_ENV"))
+# setup_logging()
+# logger = logging.getLogger(__name__)
+# logger.info(os.environ.get("APP_ENV"))
 
 
 class ResumeConsumer:
@@ -39,7 +36,7 @@ class ResumeConsumer:
             auto_offset_reset=os.environ["OFFSET"],
             group_id=os.environ["GROUP_ID"],
             value_deserializer=lambda m: json.loads(m),
-            max_poll_interval_ms=1200000
+            max_poll_interval_ms=1200000,
         )
         self.consumer.subscribe(["extract_cv_request"])
 
@@ -47,9 +44,15 @@ class ResumeConsumer:
             bootstrap_servers=os.environ["KAFKA"].split(","),
             value_serializer=lambda v: json.dumps(v).encode(),
         )
-        self.topic_send = "extract_cv_result"
+        self.duplication_result_topic = "duplicated_cv"
+        self.extract_result_topic = "extract_cv_result"
 
-        self.api_url = f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/extract"
+        self.check_duplication_api_url = (
+            f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/check-duplication"
+        )
+        self.extract_api_url = (
+            f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/extract-store"
+        )
         logger.info(self.api_url)
         self.headers = {"Content-Type": "application/json"}
 
@@ -75,16 +78,45 @@ class ResumeConsumer:
 
                         logger.info(cv_url)
                         payload = json.dumps({"cv_url": cv_url, "cv_id": cv_id})
+
                         response = requests.request(
-                            "POST", self.api_url, headers=self.headers, data=payload
+                            "POST",
+                            self.check_duplication_api_url,
+                            headers=self.headers,
+                            data=payload,
                         )
+                        check_duplication_res = response.json()
+                        if (
+                            check_duplication_res["check_result"]["is_duplicate"]
+                            is True
+                        ):
+                            self.producer.send(
+                                topic=self.duplication_result_topic,
+                                value=check_duplication_res["check_result"],
+                            )
 
-                        logger.info(response.json())
-                        results = response.json()
-                        results["cv_id"] = cv_id
-                        results["job_id"] = item.get("job_id")
+                        else:
+                            payload = json.dumps(
+                                {
+                                    "cv_data": check_duplication_res["cv_data_converted"],   # fmt: skip
+                                    "cv_embed": check_duplication_res["emb_result"],
+                                    "file_name": check_duplication_res["file_name"],
+                                }
+                            )
+                            response = requests.request(
+                                "POST",
+                                self.extract_api_url,
+                                headers=self.headers,
+                                data=payload,
+                            )
+                            logger.info(response.json())
+                            cv_extract_res = response.json()
+                            cv_extract_res["cv_id"] = cv_id
+                            cv_extract_res["job_id"] = item.get("job_id")
 
-                        self.producer.send(topic=self.topic_send, value=results)
+                            self.producer.send(
+                                topic=self.extract_result_topic, value=cv_extract_res
+                            )
 
                 if self.stop_event.is_set():
                     return

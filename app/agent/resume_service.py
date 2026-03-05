@@ -1,7 +1,7 @@
-import logging
 import traceback
 import re
 import os
+import subprocess
 
 from loguru import logger
 from datetime import datetime, timezone, timedelta
@@ -9,9 +9,13 @@ from elasticsearch import Elasticsearch, AsyncElasticsearch
 from pydantic import BaseModel, Field
 from typing import List
 
-from .manager import GenerationManager, EmbeddingManager
-from .utils import convert_resume_format
-from .providers.prompt.resume_prompt import PROMPT, SYSTEM, TASK
+from app.agent.utils import convert_resume_format
+from app.agent.providers import (
+    PreprocessData,
+    OllamaExtractionProvider,
+    OllamaEmbeddingProvider,
+)
+from app.agent.providers.prompt.resume_prompt import PROMPT, SYSTEM, TASK
 
 
 class ResumeSchema(BaseModel):
@@ -28,10 +32,22 @@ class ResumeSchema(BaseModel):
     is_deleted: bool = False
 
 
+class ResumeDuplicate(BaseModel):
+    is_duplicate: bool = False
+    cv_id_duplicates: list = []
+    cv_url_duplicates: list = []
+    similar_percentage: list = []
+
+
 class ResumeService:
     def __init__(self):
-        self.generation_manager = GenerationManager()
-        self.embedding_manager = EmbeddingManager()
+        self.preprocess_data = PreprocessData()
+
+        model_extract_name = os.environ["LL_MODEL"]
+        self.model_extract = OllamaExtractionProvider(model_extract_name)
+        model_embed_name = os.environ["EMBEDDING_MODEL"]
+        self.model_embed = OllamaEmbeddingProvider(model_embed_name)
+        self.similar_thresh = float(os.environ["SIMILAR_THRESH"])
 
         self.es_client = AsyncElasticsearch(hosts=[os.environ["ES_HOST"]])
         self.index_name = os.environ["ES_CV_INDEX"]
@@ -49,7 +65,7 @@ class ResumeService:
         doc = {
             "id": cv_id,
             "cv_url": file_name,
-            "content": resume_text,
+            "content": resume_text if isinstance(resume_text, str) else "",
             "keywords": ", ".join(gen_res["extracted_keywords"]),
             "year_of_experience": year_of_experience,
             "embedding_vector": emb_res,
@@ -65,30 +81,107 @@ class ResumeService:
             index=self.index_name, document=resume_extract_result.model_dump()
         )
         logger.info(resp)
+
+    async def close(self):
+        logger.info("close connection to ES")
         await self.es_client.close()
 
-    async def extract_and_store(self, contents, sys_mess, file_name, cv_id=None):
-        model_gen = await self.generation_manager.init_model()
-        model_emb = await self.embedding_manager.init_model()
+    async def _vectors_search(self, query_vector: list, size=1):
+        response = await self.es_client.search(
+            index=self.index_name,
+            body={
+                "_source": {"excludes": ["embedding_vector"]},
+                "size": size,
+                "query": {
+                    "script_score": {
+                        "query": {"match_all": {}},
+                        "script": {
+                            "source": "cosineSimilarity(params.query_vector, 'embedding_vector') + 1.0",
+                            "params": {"query_vector": query_vector},
+                        },
+                    }
+                },
+            },
+        )
+
+        return response["hits"]["hits"]
+
+    async def check_duplication(
+        self, data, file_name
+    ) -> tuple[dict, str | list[str], list[float]]:
+        sub_result = subprocess.run(
+            ["ollama", "stop", os.environ.get("LL_MODEL")],
+            capture_output=True,
+            text=True,
+        )
+        suffix = "." + file_name.split(".")[-1]
+        data_converted = self.preprocess_data.convert_data(data, suffix)
+        emb_result = await self.model_embed([data_converted], TASK)
+        emb_result = emb_result[0]
+        embed_query_result = await self._vectors_search(emb_result, size=2)
+
+        check_result = ResumeDuplicate()
+        for cv_info in embed_query_result:
+            raw_score = cv_info["_score"]
+            cosine_sim = raw_score - 1.0
+            similar_percentage = round(max(0.0, cosine_sim), 2)
+
+            if similar_percentage > self.similar_thresh:
+                check_result.is_duplicate = True
+                check_result.cv_id_duplicates.append(cv_info["_source"]["id"])
+                check_result.cv_url_duplicates.append(cv_info["_source"]["cv_url"])
+                check_result.similar_percentage.append(similar_percentage)
+
+        logger.info(check_result)
+
+        return check_result.model_dump(), data_converted, emb_result
+
+    async def extract(self, data, sys_mess, file_name):
+        sub_result = subprocess.run(
+            ["ollama", "stop", os.environ.get("EMBEDDING_MODEL")],
+            capture_output=True,
+            text=True,
+        )
 
         if sys_mess is None:
             sys_mess = SYSTEM
-
         suffix = "." + file_name.split(".")[-1]
-        gen_res, resume_text = await model_gen(contents, PROMPT, sys_mess, suffix)
+        data_converted = self.preprocess_data.convert_data(data, suffix)
+
+        gen_res = await self.model_extract(data_converted, PROMPT, sys_mess)
         # logger.info(gen_res)
         gen_res_format = convert_resume_format(gen_res)
 
-        emb_res = await model_emb([resume_text], TASK)
+        return gen_res, gen_res_format
 
-        if cv_id:
-            logger.info("Saving resume ....")
-            try:
-                await self._store_resume(
-                    gen_res, emb_res[0], file_name, cv_id, resume_text
-                )
-            except:
-                logger.info("Save data failed!!!!!!")
-                logger.error(traceback.format_exc())
+    # Already convert data in step check duplication
+    async def extract_and_store(self, data, file_name, cv_id, cv_embed):
+        sub_result = subprocess.run(
+            ["ollama", "stop", os.environ.get("EMBEDDING_MODEL")],
+            capture_output=True,
+            text=True,
+        )
+
+        sys_mess = SYSTEM
+        gen_res = await self.model_extract(data, PROMPT, sys_mess)
+        gen_res_format = convert_resume_format(gen_res)
+
+        logger.info("Saving resume ....")
+        try:
+            await self._store_resume(gen_res, cv_embed, file_name, cv_id, data)
+        except:
+            logger.info("Save data failed!!!!!!")
+            logger.error(traceback.format_exc())
 
         return gen_res, gen_res_format
+
+
+_resume_service_instance = None
+
+
+def get_resume_service() -> ResumeService:
+    global _resume_service_instance
+    if _resume_service_instance is None:
+        logger.info("Initing Resume Service ....")
+        _resume_service_instance = ResumeService()
+    return _resume_service_instance

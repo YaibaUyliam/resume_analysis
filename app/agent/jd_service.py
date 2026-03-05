@@ -8,8 +8,12 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 from elasticsearch import Elasticsearch, AsyncElasticsearch
 
-from .manager import GenerationManager, EmbeddingManager
-from .utils import convert_jd_format
+from app.agent.providers import (
+    PreprocessData,
+    OllamaExtractionProvider,
+    OllamaEmbeddingProvider,
+)
+from app.agent.utils import convert_jd_format
 from .providers.prompt.jd_prompt import PROMPT, SYSTEM, TASK
 from .providers.prompt.resume_review import PROMPT_REVIEW, SYSTEM_REVIEW
 
@@ -70,8 +74,10 @@ class MatcherData:
 
 class JDService:
     def __init__(self):
-        self.generation_manager = GenerationManager()
-        self.embedding_manager = EmbeddingManager()
+        model_extract_name = os.environ["LL_MODEL"]
+        self.model_extract = OllamaExtractionProvider(model_extract_name)
+        model_embed_name = os.environ["EMBEDDING_MODEL"]
+        self.model_embed = OllamaEmbeddingProvider(model_embed_name)
 
         self.es_client = AsyncElasticsearch(hosts=[os.environ["ES_HOST"]])
         self.jd_index_name = os.environ["ES_JD_INDEX"]
@@ -330,6 +336,17 @@ class JDService:
 
         await self.es_client.close()
         return gen_res, cv_top_k_review
+
+
+_jd_service_instance = None
+
+
+def get_jd_service() -> JDService:
+    global _jd_service_instance
+    if _jd_service_instance is None:
+        logger.info("Initing JD Service ....")
+        _jd_service_instance = JDService()
+    return _jd_service_instance
 
 
 if __name__ == "__main__":

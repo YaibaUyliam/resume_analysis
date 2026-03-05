@@ -1,5 +1,4 @@
-from .manager import GenerationManager, EmbeddingManager
-from .resume_service import ResumeService
-from .jd_service import JDService
+from app.agent.resume_service import ResumeService, get_resume_service
+from app.agent.jd_service import JDService
 
-__all__ = ["GenerationManager", "EmbeddingManager", "ResumeService", "JDService"]
+__all__ = ["ResumeService", "get_resume_service", "JDService"]
