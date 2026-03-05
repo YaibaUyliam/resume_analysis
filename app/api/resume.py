@@ -156,7 +156,7 @@ async def extract(
             detail="File is not provided",
         )
 
-    if not contents or not file_name.endswith((".pdf", ".docx", ".txt")):
+    if not contents or not file_name.endswith((".pdf", ".docx", ".txt", ".doc", ".xlxs")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file. Please upload a valid file.",
