@@ -44,52 +44,6 @@ def convert_pdf_to_img_base64(pdf_bytes: bytes) -> list[str]:
     return base64_imgs
 
 
-
-class PreprocessData:
-    def __init__(self):
-        use_vision = int(os.environ.get("USE_VISION", 0))
-    for idx in range(len(rec_polys)):
-        points = np.array(rec_polys[idx]).astype(np.int32).tolist()
-        x1 = min(points[0][0], points[1][0], points[2][0], points[3][0])
-        x2 = max(points[0][0], points[1][0], points[2][0], points[3][0])
-        y1 = min(points[0][1], points[1][1], points[2][1], points[3][1])
-        y2 = max(points[0][1], points[1][1], points[2][1], points[3][1])
-        y_c = int((y1 + y2) / 2)
-
-        if idx == 0:
-            ocrOnly[0] = [[x1, y1, x2, y2]]
-            if rec_scores[idx] > 0.3:
-                text_by_line += rec_texts[idx]
-                text_by_line += " "
-
-        if idx > 0:
-            sameLine = False
-            for key in ocrOnly:
-                for idxBb, bbox in enumerate(ocrOnly[key]):
-                    x1_l, y1_l, x2_l, y2_l = ocrOnly[key][idxBb]
-                    if y1_l < y_c < y2_l:
-                        sameLine = True
-                        ocrOnly[key].append([x1, y1, x2, y2])
-                        if rec_scores[idx] > 0.3:
-                            text_by_line += rec_texts[idx]
-                            text_by_line += " "
-
-                    if sameLine:
-                        break
-                if sameLine:
-                    break
-            if sameLine == False:
-                key = [key for key in ocrOnly][-1] + 1
-                ocrOnly[key] = [[x1, y1, x2, y2]]
-                if rec_scores[idx] > 0.3:
-                    text_by_line = text_by_line.strip()
-                    text_by_line += "\n"
-                    text_by_line += rec_texts[idx]
-                    text_by_line += " "
-
-    return text_by_line.strip()
-
-
 def convert_doc_to_docx(input_file):
     input_path = os.path.abspath(input_file)
     output_dir = os.path.dirname(input_path)
@@ -115,13 +69,9 @@ def convert_doc_to_docx(input_file):
     return input_path.replace(".doc", ".docx")
 
 
-class ExtractionProvider(ABC):
-    """
-    Abstract base class for providers.
-    """
-
-    def __init__(self, use_vision: int):
-        self.use_vision = False
+class PreprocessData:
+    def __init__(self):
+        use_vision = int(os.environ.get("USE_VISION", 0))
 
         if use_vision == 1:
             self.use_vision = True
