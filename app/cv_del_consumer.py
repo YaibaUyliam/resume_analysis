@@ -21,7 +21,7 @@ if os.environ.get("APP_ENV") != "production":
 # logger.info(os.environ.get("APP_ENV"))
 
 
-class ResumeConsumer:
+class ResumeDelConsumer:
     def __init__(self):
         time.sleep(20)
         logger.info("Starting ....")
@@ -44,16 +44,9 @@ class ResumeConsumer:
             bootstrap_servers=os.environ["KAFKA"].split(","),
             value_serializer=lambda v: json.dumps(v).encode(),
         )
-        self.duplication_result_topic = "duplicated_cv"
-        self.extract_result_topic = "extract_cv_result"
+        self.delete_cv_topic = "delete_cv"
 
-        self.check_duplication_api_url = (
-            f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/check-duplication"
-        )
-        self.extract_api_url = (
-            f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/extract-store"
-        )
-        logger.info(self.api_url)
+        self.del_api_url = f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/delete"
         self.headers = {"Content-Type": "application/json"}
 
     def run(self):
@@ -71,53 +64,16 @@ class ResumeConsumer:
                         logger.info(item)
 
                         cv_id = item.get("cv_id")
-                        if os.environ.get("ENV", "production") == "production":
-                            cv_url = item.get("local_url")
-                        else:
-                            cv_url = item.get("public_url")
-
-                        logger.info(cv_url)
-                        payload = json.dumps({"cv_url": cv_url, "cv_id": cv_id})
+                        payload = json.dumps({"cv_id": cv_id})
 
                         response = requests.request(
                             "POST",
-                            self.check_duplication_api_url,
+                            self.del_api_url,
                             headers=self.headers,
                             data=payload,
                         )
-                        check_duplication_res = response.json()
-                        if (
-                            check_duplication_res["check_result"]["is_duplicate"]
-                            is True
-                        ):
-                            self.producer.send(
-                                topic=self.duplication_result_topic,
-                                value=check_duplication_res["check_result"],
-                            )
 
-                        else:
-                            payload = json.dumps(
-                                {
-                                    "cv_data": check_duplication_res["cv_data_converted"],   # fmt: skip
-                                    "cv_embed": check_duplication_res["emb_result"],
-                                    "file_name": check_duplication_res["file_name"],
-                                }
-                            )
-                            response = requests.request(
-                                "POST",
-                                self.extract_api_url,
-                                headers=self.headers,
-                                data=payload,
-                            )
-                            logger.info(response.json())
-                            cv_extract_res = response.json()
-                            cv_extract_res["cv_id"] = cv_id
-                            cv_extract_res["job_id"] = item.get("job_id")
-
-                            self.producer.send(
-                                topic=self.extract_result_topic, value=cv_extract_res
-                            )
-
+                        logger.info(response)
                 if self.stop_event.is_set():
                     return
 
@@ -146,7 +102,7 @@ def signal_handler(sig, frame):
 
 
 if __name__ == "__main__":
-    bi = ResumeConsumer()
+    bi = ResumeDelConsumer()
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)

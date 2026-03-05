@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from .resume import resume_extract_router
-from .jd import jd_matcher_router
+from app.api.resume import resume_extract_router
+from app.api.jd import jd_matcher_router
 
 
 router_func = APIRouter(prefix="/api", tags=["api"])
