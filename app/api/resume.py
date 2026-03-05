@@ -156,7 +156,9 @@ async def extract(
             detail="File is not provided",
         )
 
-    if not contents or not file_name.endswith((".pdf", ".docx", ".txt", ".doc", ".xlxs")):
+    if not contents or not file_name.endswith(
+        (".pdf", ".docx", ".txt", ".doc", ".xlxs")
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file. Please upload a valid file.",
@@ -209,3 +211,20 @@ async def extract_and_store(
     except Exception as e:
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@resume_extract_router.put("/delete")
+async def delete_resume(
+    request: Request,
+    resume_service: ResumeService = Depends(get_resume_service),
+):
+    try:
+        content_type = request.headers.get("content-type")
+        if content_type and content_type.startswith("application/json"):
+            body = await request.json()
+            cv_id = body.get("cv_id")
+
+            return await resume_service.del_cv(cv_id=cv_id)
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
