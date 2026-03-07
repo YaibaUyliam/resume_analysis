@@ -96,6 +96,7 @@ class ResumeService:
             return None
 
         es_id = hits[0]["_id"]
+        logger.info(f"{es_id} will be deleted !!!")
         doc = {
             "is_deleted": True,
             "updated_at": datetime.now(self.timezone).isoformat(),
