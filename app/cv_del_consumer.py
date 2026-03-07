@@ -13,14 +13,6 @@ from kafka import KafkaConsumer, KafkaProducer
 from dotenv import load_dotenv
 
 
-if os.environ.get("APP_ENV") != "production":
-    load_dotenv("./.env")
-
-# setup_logging()
-# logger = logging.getLogger(__name__)
-# logger.info(os.environ.get("APP_ENV"))
-
-
 class ResumeDelConsumer:
     def __init__(self):
         time.sleep(20)
@@ -34,7 +26,7 @@ class ResumeDelConsumer:
         self.consumer = KafkaConsumer(
             bootstrap_servers=os.environ["KAFKA"].split(","),
             auto_offset_reset=os.environ["OFFSET"],
-            group_id=os.environ["GROUP_ID"],
+            group_id="test01",
             value_deserializer=lambda m: json.loads(m),
             max_poll_interval_ms=1200000,
         )
@@ -60,6 +52,7 @@ class ResumeDelConsumer:
                         cv_id = item.get("cv_id")
                         payload = json.dumps({"cv_id": cv_id})
 
+                        logger.info(f"Starting delete CV: {cv_id}")
                         response = requests.request(
                             "POST",
                             self.del_api_url,
