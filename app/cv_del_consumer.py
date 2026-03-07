@@ -26,7 +26,7 @@ class ResumeDelConsumer:
         self.consumer = KafkaConsumer(
             bootstrap_servers=os.environ["KAFKA"].split(","),
             auto_offset_reset=os.environ["OFFSET"],
-            group_id="test01",
+            group_id="test02",
             value_deserializer=lambda m: json.loads(m),
             max_poll_interval_ms=1200000,
         )
@@ -54,7 +54,7 @@ class ResumeDelConsumer:
 
                         logger.info(f"Starting delete CV: {cv_id}")
                         response = requests.request(
-                            "POST",
+                            "PUT",
                             self.del_api_url,
                             headers=self.headers,
                             data=payload,
