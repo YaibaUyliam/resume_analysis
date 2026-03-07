@@ -38,13 +38,7 @@ class ResumeDelConsumer:
             value_deserializer=lambda m: json.loads(m),
             max_poll_interval_ms=1200000,
         )
-        self.consumer.subscribe(["extract_cv_request"])
-
-        self.producer = KafkaProducer(
-            bootstrap_servers=os.environ["KAFKA"].split(","),
-            value_serializer=lambda v: json.dumps(v).encode(),
-        )
-        self.delete_cv_topic = "delete_cv"
+        self.consumer.subscribe(["delete_cv"])
 
         self.del_api_url = f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/delete"
         self.headers = {"Content-Type": "application/json"}
