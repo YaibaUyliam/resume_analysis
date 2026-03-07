@@ -84,22 +84,28 @@ class ResumeConsumer:
                             headers=self.headers,
                             data=payload,
                         )
-                        check_duplication_res = response.json()
-                        if (
-                            check_duplication_res["check_result"]["is_duplicate"]
-                            is True
-                        ):
+                        check_duplication_resp = response.json()
+                        # if (
+                        #     check_duplication_res["check_result"]["is_duplicate"]
+                        #     is True
+                        # ):
+                        if len(check_duplication_resp["check_result"]) > 0:
+                            value_duplicated_cv_topic = {
+                                "cv_id": cv_id,
+                                "cv_url": cv_url,
+                                "duplicated_cv": check_duplication_resp["check_result"],
+                            }
                             self.producer.send(
                                 topic=self.duplication_result_topic,
-                                value=check_duplication_res["check_result"],
+                                value=value_duplicated_cv_topic,
                             )
 
                         else:
                             payload = json.dumps(
                                 {
-                                    "cv_data": check_duplication_res["cv_data_converted"],   # fmt: skip
-                                    "cv_embed": check_duplication_res["emb_result"],
-                                    "file_name": check_duplication_res["file_name"],
+                                    "cv_data": check_duplication_resp["cv_data_converted"],   # fmt: skip
+                                    "cv_embed": check_duplication_resp["emb_result"],
+                                    "file_name": check_duplication_resp["file_name"],
                                 }
                             )
                             response = requests.request(
