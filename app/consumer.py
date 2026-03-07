@@ -53,7 +53,6 @@ class ResumeConsumer:
         self.extract_api_url = (
             f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/extract-store"
         )
-        logger.info(self.api_url)
         self.headers = {"Content-Type": "application/json"}
 
     def run(self):
