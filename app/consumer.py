@@ -93,6 +93,7 @@ class ResumeConsumer:
                             value_duplicated_cv_topic = {
                                 "cv_id": cv_id,
                                 "cv_url": cv_url,
+                                "job_id": item.get("job_id"),
                                 "duplicated_cv": check_duplication_resp["check_result"],
                             }
                             self.producer.send(
