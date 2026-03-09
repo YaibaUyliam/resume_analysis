@@ -106,7 +106,8 @@ class ResumeConsumer:
                                 {
                                     "cv_data": check_duplication_resp["cv_data_converted"],   # fmt: skip
                                     "cv_embed": check_duplication_resp["emb_result"],
-                                    "file_name": check_duplication_resp["filename"],
+                                    "file_name": check_duplication_resp["file_name"],
+                                    "cv_id": cv_id
                                 }
                             )
                             response = requests.request(
@@ -117,7 +118,6 @@ class ResumeConsumer:
                             )
                             logger.info(response.json())
                             cv_extract_res = response.json()
-                            cv_extract_res["cv_id"] = cv_id
                             cv_extract_res["job_id"] = item.get("job_id")
 
                             self.producer.send(
