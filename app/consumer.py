@@ -106,7 +106,7 @@ class ResumeConsumer:
                                 {
                                     "cv_data": check_duplication_resp["cv_data_converted"],   # fmt: skip
                                     "cv_embed": check_duplication_resp["emb_result"],
-                                    "file_name": check_duplication_resp["file_name"],
+                                    "file_name": check_duplication_resp["filename"],
                                 }
                             )
                             response = requests.request(

@@ -148,6 +148,7 @@ class ResumeService:
             raw_score = cv_info["_score"]
             cosine_sim = raw_score - 1.0
             similar_percentage = round(max(0.0, cosine_sim), 2)
+            logger.info(f"Similar Percentage: {similar_percentage}")
 
             if similar_percentage > self.similar_thresh:
                 cv_similar = {
