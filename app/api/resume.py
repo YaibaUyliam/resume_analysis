@@ -103,7 +103,7 @@ async def check_duplication(
 
         return JSONResponse(
             content={
-                "filename": file_name,
+                "file_name": file_name,
                 "check_result": check_result,
                 "cv_data_converted": cv_data_converted,
                 "emb_result": emb_result,
@@ -179,7 +179,7 @@ async def extract(
 
         return JSONResponse(
             content={
-                "filename": file_name,
+                "file_name": file_name,
                 "info_extract": gen_res_format,
                 "info_extract_raw": gen_res,
             }
@@ -202,9 +202,10 @@ async def extract_and_store(
 
         return JSONResponse(
             content={
-                "filename": payload.file_name,
+                "file_name": payload.file_name,
                 "info_extract": gen_res_format,
                 "info_extract_raw": gen_res,
+                "cv_id": payload.cv_id,
             }
         )
 
