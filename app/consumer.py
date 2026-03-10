@@ -55,6 +55,20 @@ class ResumeConsumer:
         )
         self.headers = {"Content-Type": "application/json"}
 
+    def _error_handling(self, response, cv_id, cv_url, job_id):
+        logger.error(f"API check duplication failed: {response.text}")
+        error_mess = {
+            "status": False,
+            "cv_id": cv_id,
+            "cv_url": cv_url,
+            "job_id": job_id,
+            "error_message": response.text,
+        }
+        self.producer.send(
+            topic=self.duplication_result_topic,
+            value=error_mess,
+        )
+
     def run(self):
         while True:
             try:
@@ -70,6 +84,7 @@ class ResumeConsumer:
                         logger.info(item)
 
                         cv_id = item.get("cv_id")
+                        job_id = item.get("job_id")
                         if os.environ.get("ENV", "production") == "production":
                             cv_url = item.get("local_url")
                         else:
@@ -85,15 +100,16 @@ class ResumeConsumer:
                             data=payload,
                         )
                         check_duplication_resp = response.json()
-                        # if (
-                        #     check_duplication_res["check_result"]["is_duplicate"]
-                        #     is True
-                        # ):
+                        if not response.ok:
+                            self._error_handling(response, cv_id, cv_url, job_id)
+                            continue
+
                         if len(check_duplication_resp["check_result"]) > 0:
                             value_duplicated_cv_topic = {
+                                "status": True,
                                 "cv_id": cv_id,
                                 "cv_url": cv_url,
-                                "job_id": item.get("job_id"),
+                                "job_id": job_id,
                                 "duplicated_cv": check_duplication_resp["check_result"],
                             }
                             self.producer.send(
@@ -107,7 +123,7 @@ class ResumeConsumer:
                                     "cv_data": check_duplication_resp["cv_data_converted"],   # fmt: skip
                                     "cv_embed": check_duplication_resp["emb_result"],
                                     "file_name": check_duplication_resp["file_name"],
-                                    "cv_id": cv_id
+                                    "cv_id": cv_id,
                                 }
                             )
                             response = requests.request(
@@ -116,12 +132,18 @@ class ResumeConsumer:
                                 headers=self.headers,
                                 data=payload,
                             )
+                            if not response.ok:
+                                self._error_handling(response, cv_id, cv_url, job_id)
+                                continue
+
                             logger.info(response.json())
                             cv_extract_res = response.json()
-                            cv_extract_res["job_id"] = item.get("job_id")
+                            cv_extract_res["job_id"] = job_id
+                            cv_extract_res["status"] = True
 
                             self.producer.send(
-                                topic=self.extract_result_topic, value=cv_extract_res
+                                topic=self.extract_result_topic,
+                                value=cv_extract_res,
                             )
 
                 if self.stop_event.is_set():
@@ -129,7 +151,7 @@ class ResumeConsumer:
 
             except Exception as e:
                 logger.error(traceback.format_exc())
-                # self.producer.send(topic=self.topic_send, value=info.results)
+                # self.producer.send(topic=self.extract_result_topic, value=info.results)
 
     def start(self):
         for _ in range(self.process):

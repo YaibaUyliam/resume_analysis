@@ -197,7 +197,7 @@ async def extract_and_store(
     resume_service: ResumeService = Depends(get_resume_service),
 ):
     try:
-        gen_res, gen_res_format, _ = await resume_service.extract_and_store(
+        gen_res, gen_res_format = await resume_service.extract_and_store(
             payload.cv_data, payload.file_name, payload.cv_id, payload.cv_embed
         )
 
