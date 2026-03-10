@@ -95,12 +95,7 @@ class OllamaExtractionProvider(ExtractionProvider):
                     images=preprocessed_data,
                 )
 
-            input_tokens = response.get("prompt_eval_count")
-            output_tokens = response.get("eval_count")
-            logger.info(f"Token Input number: {input_tokens}")
-            logger.info(f"Token Output number: {output_tokens}")
-
-            return self._postprocess(response)
+            return self._postprocess(response), response
 
         except Exception as e:
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
