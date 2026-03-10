@@ -173,7 +173,7 @@ async def extract(
         sys_mess = prompt.decode("utf-8")
 
     try:
-        gen_res, gen_res_format = await resume_service.extract(
+        gen_res, gen_res_format, service_resp = await resume_service.extract(
             contents, sys_mess, file_name
         )
 
@@ -182,6 +182,7 @@ async def extract(
                 "file_name": file_name,
                 "info_extract": gen_res_format,
                 "info_extract_raw": gen_res,
+                "service_resp": service_resp.model_dump(),
             }
         )
 
@@ -196,7 +197,7 @@ async def extract_and_store(
     resume_service: ResumeService = Depends(get_resume_service),
 ):
     try:
-        gen_res, gen_res_format = await resume_service.extract_and_store(
+        gen_res, gen_res_format, _ = await resume_service.extract_and_store(
             payload.cv_data, payload.file_name, payload.cv_id, payload.cv_embed
         )
 

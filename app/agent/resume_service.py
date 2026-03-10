@@ -168,16 +168,18 @@ class ResumeService:
         suffix = "." + file_name.split(".")[-1]
         data_converted = self.preprocess_data.convert_data(data, suffix)
 
-        gen_res = await self.model_extract(data_converted, PROMPT, sys_mess)
+        gen_res, service_resp = await self.model_extract(
+            data_converted, PROMPT, sys_mess
+        )
         # logger.info(gen_res)
         gen_res_format = convert_resume_format(gen_res)
 
-        return gen_res, gen_res_format
+        return gen_res, gen_res_format, service_resp
 
     # Already convert data in step check duplication
     async def extract_and_store(self, data, file_name, cv_id, cv_embed):
         sys_mess = SYSTEM
-        gen_res = await self.model_extract(data, PROMPT, sys_mess)
+        gen_res, _ = await self.model_extract(data, PROMPT, sys_mess)
         gen_res_format = convert_resume_format(gen_res)
 
         logger.info("Saving resume ....")
