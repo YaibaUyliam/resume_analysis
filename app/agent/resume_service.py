@@ -71,7 +71,7 @@ class ResumeService:
             "cv_url": file_name,
             "content": resume_data if isinstance(resume_data, str) else "",
             "keywords": ", ".join(gen_res["extracted_keywords"]),
-            "year_of_experience": year_of_experience,
+            "year_of_experience": year_of_experience if year_of_experience else None,
             "embedding_vector": emb_res,
             "full_name": gen_res["personal_info"]["full_name"],
             "desired_position": gen_res["personal_info"].get("desired_position"),
@@ -187,16 +187,18 @@ class ResumeService:
 
     # Already convert data in step check duplication
     async def extract_and_store(self, data, file_name, cv_id, cv_embed):
-        sys_mess = SYSTEM
-        gen_res, _ = await self.model_extract(data, PROMPT, sys_mess)
-        gen_res_format = convert_resume_format(gen_res)
-
-        logger.info("Saving resume ....")
         try:
+            sys_mess = SYSTEM
+            gen_res, _ = await self.model_extract(data, PROMPT, sys_mess)
+            gen_res_format = convert_resume_format(gen_res)
+
+            logger.info("Saving resume ....")
             await self._store_resume(gen_res, cv_embed, file_name, cv_id, data)
+
         except:
             logger.info("Save data failed!!!!!!")
             logger.error(traceback.format_exc())
+            raise
 
         return gen_res, gen_res_format
 
