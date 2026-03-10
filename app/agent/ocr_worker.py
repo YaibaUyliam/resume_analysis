@@ -1,5 +1,6 @@
 import tempfile
 import numpy as np
+import traceback
 
 from paddleocr import PaddleOCR
 
@@ -59,17 +60,21 @@ def run_ocr_process(data, result_queue):
         text_detection_model_dir="./ckpts/PP-OCRv5_server_det",
         text_recognition_model_dir="./ckpts/PP-OCRv5_server_rec",
     )
+    try:
+        with tempfile.NamedTemporaryFile(delete=True, suffix=".pdf") as temp_pdf:
+            temp_pdf.write(data)
+            temp_pdf.flush()
 
-    with tempfile.NamedTemporaryFile(delete=True, suffix=".pdf") as temp_pdf:
-        temp_pdf.write(data)
-        temp_pdf.flush()
+            result = ocr.predict(temp_pdf.name)
+            text_by_line = ""
+            for res in result:
+                convert = paddleocrv3_output_to_text(
+                    res["rec_polys"], res["rec_texts"], res["rec_scores"]
+                )
+                text_by_line += convert + "\n\n"
 
-        result = ocr.predict(temp_pdf.name)
-        text_by_line = ""
-        for res in result:
-            convert = paddleocrv3_output_to_text(
-                res["rec_polys"], res["rec_texts"], res["rec_scores"]
-            )
-            text_by_line += convert + "\n\n"
+            result_queue.put({"status": True, "data": text_by_line})
 
-        result_queue.put(text_by_line)
+    except Exception as e:
+        tb = traceback.format_exc()
+        result_queue.put({"status": False, "exception": e, "traceback": tb})

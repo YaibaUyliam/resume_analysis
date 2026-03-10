@@ -9,6 +9,7 @@ import multiprocessing
 from pdf2image import convert_from_bytes
 from PIL import Image
 from markitdown import MarkItDown
+from loguru import logger
 
 from typing import Optional
 from abc import ABC, abstractmethod
@@ -100,7 +101,12 @@ class PreprocessData:
             p.join()
 
             if not queue.empty():
-                return queue.get()
+                res = queue.get()
+                if res["status"] == False:
+                    logger.info(res["traceback"])
+                    raise res["exception"]
+
+                return res["data"]
 
         if isinstance(data, bytes) and file_suffix:
             with tempfile.NamedTemporaryFile(

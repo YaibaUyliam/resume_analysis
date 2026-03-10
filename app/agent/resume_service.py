@@ -137,30 +137,39 @@ class ResumeService:
     async def check_duplication(
         self, data, file_name
     ) -> tuple[list, str | list[str], list[float]]:
-        suffix = "." + file_name.split(".")[-1]
-        data_converted = self.preprocess_data.convert_data(data, suffix)
-        emb_result = await self.model_embed([data_converted], TASK)
-        emb_result = emb_result[0]
-        embed_query_result = await self._vectors_search(emb_result, size=2)
+        try:
+            suffix = "." + file_name.split(".")[-1]
+            data_converted = self.preprocess_data.convert_data(data, suffix)
+            emb_result = await self.model_embed([data_converted], TASK)
+            emb_result = emb_result[0]
+            embed_query_result = await self._vectors_search(emb_result, size=2)
 
-        check_result = []
-        for cv_info in embed_query_result:
-            raw_score = cv_info["_score"]
-            cosine_sim = raw_score - 1.0
-            similar_percentage = round(max(0.0, cosine_sim), 2)
-            logger.info(f"Similar Percentage: {similar_percentage}")
+            check_result = []
+            for cv_info in embed_query_result:
+                raw_score = cv_info["_score"]
+                cosine_sim = raw_score - 1.0
+                similar_percentage = round(max(0.0, cosine_sim), 2)
+                logger.info(f"Similar Percentage: {similar_percentage}")
 
-            if similar_percentage > self.similar_thresh:
-                cv_similar = {
-                    "cv_id": cv_info["_source"]["id"],
-                    "cv_url": cv_info["_source"]["cv_url"],
-                    "similar_percentage": similar_percentage,
-                }
-                check_result.append(cv_similar)
+                if similar_percentage > self.similar_thresh:
+                    cv_similar = {
+                        "cv_id": cv_info["_source"]["id"],
+                        "cv_url": cv_info["_source"]["cv_url"],
+                        "similar_percentage": similar_percentage,
+                    }
+                    check_result.append(cv_similar)
 
-        logger.info(check_result)
+            logger.info(check_result)
 
-        return check_result, data_converted, emb_result
+            return check_result, data_converted, emb_result
+
+        except ValueError as e:
+            logger.error("OCR failed!!!!!")
+            raise
+
+        except Exception as e:
+            logger.error(e)
+            raise
 
     async def extract(self, data, sys_mess, file_name):
         if sys_mess is None:
