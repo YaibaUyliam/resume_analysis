@@ -53,6 +53,19 @@ class JDConsumer:
         logger.info(self.api_url)
         self.headers = {"Content-Type": "application/json"}
 
+    def _error_handling(self, response, jd_id, system_job_id):
+        logger.error(f"API check duplication failed: {response.text}")
+        error_mess = {
+            "status": False,
+            "jd_id": jd_id,
+            "system_job_id": system_job_id,
+            "error_message": response.text,
+        }
+        self.producer.send(
+            topic=self.topic_send,
+            value=error_mess,
+        )
+
     def run(self):
         while True:
             try:
@@ -68,16 +81,19 @@ class JDConsumer:
                         logger.info(item)
 
                         jd_id = item.get("id")
-
+                        system_job_id = item.get("systemJobId")
                         payload = json.dumps({"jd_content": item, "jd_id": jd_id})
                         response = requests.request(
                             "POST", self.api_url, headers=self.headers, data=payload
                         )
 
-                        # logger.info(response.json())
+                        if not response.ok:
+                            self._error_handling(response, jd_id, system_job_id)
+                            continue
+
                         results = response.json()
                         results["jd_id"] = jd_id
-                        results["system_job_id"] = item.get("systemJobId")
+                        results["system_job_id"] = system_job_id
 
                         self.producer.send(topic=self.topic_send, value=results)
 
