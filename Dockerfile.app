@@ -22,7 +22,6 @@ RUN apt-get update -y && apt-get upgrade -y && apt-get install -y --no-install-r
 
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN ln -s /usr/bin/python3 /usr/bin/python
-RUN python3 -m pip install --no-cache-dir --upgrade pip
 
 WORKDIR /env
 COPY ./ckpts /env/ckpts/
