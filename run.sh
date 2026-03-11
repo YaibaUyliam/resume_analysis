@@ -10,7 +10,7 @@
 
 VERSION=${1:-$(date +%Y%m%d%H%M%S)}
 echo "🚀 Starting deploy with version: $VERSION"
-docker build -t yaibawiliam/resume_analysis:$VERSION .
+docker build -f Dockerfile.app -t yaibawiliam/resume_analysis:$VERSION .
 
 echo "🚢 Running docker compose ..."
 APP_VERSION=$VERSION docker compose up -d
