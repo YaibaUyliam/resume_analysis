@@ -16,7 +16,9 @@ from .base import ExtractionProvider, EmbeddingProvider, remove_image_special
 
 
 class OllamaExtractionProvider(ExtractionProvider):
-    def __init__(self, model_name: str, use_vision: bool = False, host: Optional[str] = None):
+    def __init__(
+        self, model_name: str, use_vision: bool = False, host: Optional[str] = None
+    ):
         logger.info("Running model with Ollama ........")
         super().__init__(use_vision)
 
@@ -45,7 +47,7 @@ class OllamaExtractionProvider(ExtractionProvider):
 
         return data_input_model
 
-    def _postprocess(self, model_res: str):
+    def _postprocess(self, model_res: dict):
         result = remove_image_special(model_res["response"].strip())
 
         try:
@@ -60,7 +62,7 @@ class OllamaExtractionProvider(ExtractionProvider):
 
     def _generate_sync(
         self, resume_data: bytes | str, prompt: str, sys_mess: str
-    ) -> str:
+    ) -> tuple[str, dict]:
         """
         Generate a response from the model.
         """
@@ -100,7 +102,9 @@ class OllamaExtractionProvider(ExtractionProvider):
         except Exception as e:
             raise GenerationError(f"Ollama - Error generating response: {e}") from e
 
-    async def __call__(self, resume_data: bytes, prompt: str, sys_mess: str) -> str:
+    async def __call__(
+        self, resume_data: bytes, prompt: str, sys_mess: str
+    ) -> tuple[str, dict]:
         return await run_in_threadpool(
             self._generate_sync, resume_data, prompt, sys_mess
         )

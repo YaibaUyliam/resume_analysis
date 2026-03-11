@@ -7,14 +7,16 @@ from fastapi import FastAPI, Depends
 from app.core import setup_logging
 from app.api import health_check, router_func
 
-from app.agent import ResumeService, get_resume_service
+from app.agent import get_resume_service, get_jd_service
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     resume_service = get_resume_service()
+    jd_service = get_jd_service()
     yield
     await resume_service.close()
+    await jd_service.close()
 
 
 def create_app() -> FastAPI:

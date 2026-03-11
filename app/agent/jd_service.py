@@ -89,6 +89,10 @@ class JDService:
 
         self.timezone = timezone(timedelta(hours=8))
 
+    async def close(self):
+        logger.info("close connection to ES")
+        await self.es_client.close()
+
     async def _store_jd(self, gen_res, emb_res, file_name, jd_id, jd_data):
         minimum_years_of_experience = gen_res.get("minimum_years_of_experience", "")
         if minimum_years_of_experience:
@@ -224,7 +228,7 @@ class JDService:
                 extracted_resume_keywords=resume.keywords,
             )
 
-            gen_res = await self.model_gen("", prompt, SYSTEM_REVIEW)
+            gen_res, _ = await self.model_gen("", prompt, SYSTEM_REVIEW)
             resume.merge_model_result_and_cv_data_original(gen_res)
             results.append(resume)
 
@@ -271,7 +275,7 @@ class JDService:
             suffix = None
 
         data_converted = self.preprocess_data.convert_data(data, suffix)
-        gen_res = await self.model_gen(data_converted, prompt, SYSTEM)
+        gen_res, _ = await self.model_gen(data_converted, prompt, SYSTEM)
 
         # gen_res_format = convert_jd_format(gen_res)
         emb_result = await self.model_embed([data_converted], TASK, query=True)
@@ -333,22 +337,15 @@ class JDService:
 
             if jd_id:
                 logger.info("Saving resume ....")
-                try:
-                    await self._store_jd(
-                        gen_res, emb_result[0], file_name, jd_id, data_converted
-                    )
-                    await self._store_search_result(jd_id, cv_top_k_review)
-                    await self.es_client.close()
-
-                except:
-                    logger.info("Save data failed!!!!!!")
-                    logger.error(traceback.format_exc())
+                await self._store_jd(
+                    gen_res, emb_result[0], file_name, jd_id, data_converted
+                )
+                await self._store_search_result(jd_id, cv_top_k_review)
 
             cv_top_k_review = [asdict(v) for v in cv_top_k_review]
         else:
             logger.info("Can not get extracted keywords")
 
-        await self.es_client.close()
         return gen_res, cv_top_k_review
 
 
