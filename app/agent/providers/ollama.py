@@ -8,8 +8,13 @@ from loguru import logger
 from typing import Any, Dict, List, Optional
 from fastapi.concurrency import run_in_threadpool
 
-from .exceptions import GenerationError
-from .base import ExtractionProvider, EmbeddingProvider, remove_image_special
+from app.agent.providers.exceptions import GenerationError
+from app.agent.providers.base import (
+    ExtractionProvider,
+    EmbeddingProvider,
+    remove_image_special,
+    unload_model_ollama,
+)
 
 
 # logger = logging.getLogger(__name__)
@@ -71,14 +76,7 @@ class OllamaExtractionProvider(ExtractionProvider):
         logger.info(f"Time preprocess data: {time.time()- time_s}")
         logger.info(preprocessed_data)
 
-        unload_model_resp = requests.post(
-            os.environ.get("OLLAMA_BASE_URL"),
-            json={"model": os.environ["EMBEDDING_MODEL"], "keep_alive": 0},
-        )
-        if unload_model_resp.status_code == 200:
-            logger.info(unload_model_resp.text)
-        else:
-            logger.info("Model already stopped")
+        unload_model_ollama(os.environ["EMBEDDING_MODEL"])
 
         try:
             if not self.use_vision:
@@ -140,17 +138,9 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
             raise GenerationError("Model has not installed !!!")
 
     def _embed_sync(self, input_data: list[str], task: str, query: bool) -> str:
-        unload_model_resp = requests.post(
-            os.environ.get("OLLAMA_BASE_URL"),
-            json={"model": os.environ["LL_MODEL"], "keep_alive": 0},
-        )
-        if unload_model_resp.status_code == 200:
-            logger.info(unload_model_resp.text)
-        else:
-            logger.info("Model already stopped")
+        unload_model_ollama(os.environ["LL_MODEL"])
 
         preprocessed_data = []
-
         if query:
             for data in input_data:
                 # Qwen3 have instruct

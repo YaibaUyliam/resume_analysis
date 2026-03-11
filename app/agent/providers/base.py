@@ -71,6 +71,24 @@ def convert_doc_to_docx(input_file):
     return input_path.replace(".doc", ".docx")
 
 
+def unload_model_ollama(model_name):
+    ollama_url = os.environ.get("OLLAMA_BASE_URL")
+
+    unload_model_resp = requests.post(
+        (
+            ollama_url + "/api/generate"
+            if ollama_url
+            else "http://0.0.0.0:11434/api/generate"
+        ),
+        json={"model": model_name, "keep_alive": 0},
+    )
+
+    if unload_model_resp.status_code == 200:
+        logger.info(unload_model_resp.text)
+    else:
+        logger.info("Model already stopped")
+
+
 class PreprocessData:
     def __init__(self):
         use_vision = int(os.environ.get("USE_VISION", 0))
@@ -89,14 +107,7 @@ class PreprocessData:
             return data
 
         if isinstance(data, bytes) and file_suffix == ".pdf":
-            unload_model_resp = requests.post(
-                os.environ.get("OLLAMA_BASE_URL"),
-                json={"model": os.environ["LL_MODEL"], "keep_alive": 0},
-            )
-            if unload_model_resp.status_code == 200:
-                logger.info(unload_model_resp.text)
-            else:
-                logger.info("Model already stopped")
+            unload_model_ollama(os.environ["LL_MODEL"])
 
             ctx = multiprocessing.get_context("spawn")
             queue = ctx.Queue()
