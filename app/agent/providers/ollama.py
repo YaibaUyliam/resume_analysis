@@ -1,7 +1,7 @@
 import json
 import time
 import ollama
-import subprocess
+import requests
 import os
 
 from loguru import logger
@@ -71,11 +71,14 @@ class OllamaExtractionProvider(ExtractionProvider):
         logger.info(f"Time preprocess data: {time.time()- time_s}")
         logger.info(preprocessed_data)
 
-        sub_result = subprocess.run(
-            ["ollama", "stop", os.environ.get("EMBEDDING_MODEL")],
-            capture_output=True,
-            text=True,
+        unload_model_resp = requests.post(
+            os.environ.get("OLLAMA_BASE_URL"),
+            json={"model": os.environ["EMBEDDING_MODEL"], "keep_alive": 0},
         )
+        if unload_model_resp.status_code == 200:
+            logger.info(unload_model_resp.text)
+        else:
+            logger.info("Model already stopped")
 
         try:
             if not self.use_vision:
@@ -137,11 +140,14 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
             raise GenerationError("Model has not installed !!!")
 
     def _embed_sync(self, input_data: list[str], task: str, query: bool) -> str:
-        sub_result = subprocess.run(
-            ["ollama", "stop", os.environ.get("LL_MODEL")],
-            capture_output=True,
-            text=True,
+        unload_model_resp = requests.post(
+            os.environ.get("OLLAMA_BASE_URL"),
+            json={"model": os.environ["LL_MODEL"], "keep_alive": 0},
         )
+        if unload_model_resp.status_code == 200:
+            logger.info(unload_model_resp.text)
+        else:
+            logger.info("Model already stopped")
 
         preprocessed_data = []
 
