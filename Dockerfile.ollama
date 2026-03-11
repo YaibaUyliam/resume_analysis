@@ -2,6 +2,7 @@ FROM yaibawiliam/ollama:v0.12.6.dev
 
 RUN nohup bash -c "ollama serve &" && sleep 7 \
     && ollama pull qwen2.5:14b-instruct-q5_K_M \
-    && ollama pull qwen3-embedding:0.6b-fp16
+    && ollama pull qwen3-embedding:0.6b-fp16 \
+    && pkill ollama
 
-CMD ["ollama", "serve"]
+CMD ["serve"]

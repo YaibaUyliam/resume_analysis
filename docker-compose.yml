@@ -21,8 +21,20 @@ services:
     depends_on:
       - elasticsearch
 
+  ollama:
+    image: yaibawiliam/ollama_server:v0.0.0
+    privileged: true
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+
   matcher:
-    image: yaibawiliam/resume_analysis:v5.1.0
+    image: yaibawiliam/resume_analysis:${APP_VERSION}
     container_name: matcher
     privileged: true
     shm_size: "16g"
@@ -40,11 +52,17 @@ services:
       - EMBEDDING_PROVIDER=ollama
       - EMBEDDING_MODEL=qwen3-embedding:0.6b-fp16
       - KAFKA=43.198.68.123:9092,43.198.68.123:9093,43.198.68.123:9094
-      - GROUP_ID=resume_1
+      - GROUP_ID=resume_2
+      - JD_GROUP_ID=jd-test-01
+      - OFFSET=earliest
       - PROCESS=1
       - PORT=8081
       - ES_HOST=http://elasticsearch:9200
-      - ES_CV_INDEX=resume-extract-test-1013
-      - ES_JD_INDEX=jd-extract-test-1013
+      - ES_CV_INDEX=resume-extract-1029
+      - ES_JD_INDEX=jd-extract-1029
+      - ES_SEARCH_RESULT_INDEX=search-result-03012026
+      - REQUEST_LIMIT=1
+      - SIMILAR_THRESH=0.85
+      - OLLAMA_BASE_URL=http://ollama:11434
     ports:
       - "9001:8081"
