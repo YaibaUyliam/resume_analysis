@@ -5,6 +5,7 @@ import re
 import subprocess
 import os
 import multiprocessing
+import requests
 
 from pdf2image import convert_from_bytes
 from PIL import Image
@@ -88,11 +89,14 @@ class PreprocessData:
             return data
 
         if isinstance(data, bytes) and file_suffix == ".pdf":
-            sub_result = subprocess.run(
-                ["ollama", "stop", os.environ.get("LL_MODEL")],
-                capture_output=True,
-                text=True,
+            unload_model_resp = requests.post(
+                os.environ.get("OLLAMA_BASE_URL"),
+                json={"model": os.environ["LL_MODEL"], "keep_alive": 0},
             )
+            if unload_model_resp.status_code == 200:
+                logger.info(unload_model_resp.text)
+            else:
+                logger.info("Model already stopped")
 
             ctx = multiprocessing.get_context("spawn")
             queue = ctx.Queue()

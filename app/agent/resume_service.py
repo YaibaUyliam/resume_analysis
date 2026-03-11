@@ -1,7 +1,6 @@
 import traceback
 import re
 import os
-import subprocess
 
 from loguru import logger
 from datetime import datetime, timezone, timedelta
@@ -46,13 +45,11 @@ class ResumeService:
     def __init__(self):
         self.preprocess_data = PreprocessData()
 
-        model_extract_name = os.environ["LL_MODEL"]
         self.model_extract = OllamaExtractionProvider(
-            model_extract_name, host=os.environ.get("OLLAMA_BASE_URL")
+            os.environ["LL_MODEL"], host=os.environ.get("OLLAMA_BASE_URL")
         )
-        model_embed_name = os.environ["EMBEDDING_MODEL"]
         self.model_embed = OllamaEmbeddingProvider(
-            model_embed_name, host=os.environ.get("OLLAMA_BASE_URL")
+            os.environ["EMBEDDING_MODEL"], host=os.environ.get("OLLAMA_BASE_URL")
         )
         self.similar_thresh = float(os.environ["SIMILAR_THRESH"])
 
