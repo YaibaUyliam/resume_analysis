@@ -13,6 +13,6 @@ echo "🚀 Starting deploy with version: $VERSION"
 docker build -t my-app-image:$VERSION .
 
 echo "🚢 Running docker compose ..."
-APP_VERSION=$VERSION docker-compose up -d
+APP_VERSION=$VERSION docker compose up -d
 
 echo "✅ Deploy done"
