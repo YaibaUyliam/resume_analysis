@@ -77,9 +77,13 @@ class JDService:
         self.preprocess_data = PreprocessData()
 
         model_gen_name = os.environ["LL_MODEL"]
-        self.model_gen = OllamaExtractionProvider(model_gen_name)
+        self.model_gen = OllamaExtractionProvider(
+            model_gen_name, host=os.environ.get("OLLAMA_BASE_URL")
+        )
         model_embed_name = os.environ["EMBEDDING_MODEL"]
-        self.model_embed = OllamaEmbeddingProvider(model_embed_name)
+        self.model_embed = OllamaEmbeddingProvider(
+            model_embed_name, host=os.environ.get("OLLAMA_BASE_URL")
+        )
 
         self.es_client = AsyncElasticsearch(hosts=[os.environ["ES_HOST"]])
         self.jd_index_name = os.environ["ES_JD_INDEX"]
