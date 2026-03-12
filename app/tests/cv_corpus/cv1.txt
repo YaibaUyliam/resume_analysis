@@ -1,0 +1,6 @@
+Nguyễn Văn A
+Email: a@example.com
+Phone: +84 912345678
+3.5 years backend with Golang, REST, Docker, PostgreSQL.
+Built scalable services, REST APIs, database migrations.
+BS in CS. Based in HCMC. Some Kubernetes.

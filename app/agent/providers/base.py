@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from io import BytesIO
 import base64
 import tempfile
@@ -8,14 +10,52 @@ import multiprocessing
 
 from pdf2image import convert_from_bytes
 from PIL import Image
-from markitdown import MarkItDown
 from loguru import logger
 
 from typing import Optional
 from abc import ABC, abstractmethod
 
-from app.agent.ocr_worker import run_ocr_process
 
+def get_markitdown_class():
+    try:
+        from markitdown import MarkItDown
+
+        return MarkItDown
+    except (ImportError, AttributeError):
+        pass
+
+    try:
+        from markitdown._markitdown import MarkItDown
+
+        return MarkItDown
+    except (ImportError, AttributeError):
+        pass
+
+    raise ImportError(
+        "MarkItDown is not available in the installed 'markitdown' package. "
+        "Please install a compatible version or use PDF/vision mode only."
+    )
+
+
+def extract_pdf_text_with_pypdf(pdf_bytes: bytes) -> str:
+    try:
+        from pypdf import PdfReader
+    except ImportError as exc:
+        raise ImportError(
+            "pypdf is required for PDF text fallback extraction."
+        ) from exc
+
+    reader = PdfReader(BytesIO(pdf_bytes))
+    texts = []
+    for page in reader.pages:
+        page_text = page.extract_text() or ""
+        if page_text.strip():
+            texts.append(page_text)
+
+    extracted_text = "\n\n".join(texts).strip()
+    if not extracted_text:
+        raise ValueError("No text could be extracted from the PDF via pypdf.")
+    return extracted_text
 
 def remove_image_special(text):
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
@@ -73,12 +113,17 @@ def convert_doc_to_docx(input_file):
 class PreprocessData:
     def __init__(self):
         use_vision = int(os.environ.get("USE_VISION", 0))
+        self.md = None
 
         if use_vision == 1:
             self.use_vision = True
         else:
             self.use_vision = False
-            self.md = MarkItDown(enable_plugins=False)
+            try:
+                MarkItDown = get_markitdown_class()
+                self.md = MarkItDown(enable_plugins=False)
+            except ImportError as exc:
+                logger.warning(str(exc))
 
     def convert_data(self, data: bytes | str, file_suffix: str) -> str | list[str]:
         if self.use_vision:
@@ -88,25 +133,34 @@ class PreprocessData:
             return data
 
         if isinstance(data, bytes) and file_suffix == ".pdf":
-            sub_result = subprocess.run(
-                ["ollama", "stop", os.environ.get("LL_MODEL")],
-                capture_output=True,
-                text=True,
-            )
+            try:
+                from app.agent.ocr_worker import run_ocr_process
 
-            ctx = multiprocessing.get_context("spawn")
-            queue = ctx.Queue()
-            p = ctx.Process(target=run_ocr_process, args=(data, queue))
-            p.start()
-            p.join()
+                subprocess.run(
+                    ["ollama", "stop", os.environ.get("LL_MODEL")],
+                    capture_output=True,
+                    text=True,
+                )
 
-            if not queue.empty():
-                res = queue.get()
-                if res["status"] == False:
-                    logger.info(res["traceback"])
-                    raise res["exception"]
+                ctx = multiprocessing.get_context("spawn")
+                queue = ctx.Queue()
+                p = ctx.Process(target=run_ocr_process, args=(data, queue))
+                p.start()
+                p.join()
 
-                return res["data"]
+                if not queue.empty():
+                    res = queue.get()
+                    if res["status"] is False:
+                        logger.info(res["traceback"])
+                        raise res["exception"]
+
+                    return res["data"]
+            except Exception as exc:
+                logger.warning(
+                    f"OCR pipeline failed for PDF extraction: {exc}. "
+                    "Falling back to pypdf text extraction."
+                )
+                return extract_pdf_text_with_pypdf(data)
 
         if isinstance(data, bytes) and file_suffix:
             with tempfile.NamedTemporaryFile(
@@ -119,6 +173,11 @@ class PreprocessData:
                 if file_suffix == ".doc":
                     temp_path = convert_doc_to_docx(temp_path)
 
+                if self.md is None:
+                    raise ImportError(
+                        "MarkItDown is required to convert non-PDF documents. "
+                        "Install a compatible 'markitdown' package or enable vision mode."
+                    )
                 return self.md.convert(temp_path).text_content
 
         raise TypeError("resume_data is not valid type")

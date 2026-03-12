@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import asyncio
 import traceback
 import re
 import os
@@ -6,7 +9,7 @@ from loguru import logger
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
-from elasticsearch import Elasticsearch, AsyncElasticsearch
+from elasticsearch import Elasticsearch, AsyncElasticsearch, ConflictError, NotFoundError
 
 from app.agent.providers import (
     PreprocessData,
@@ -16,6 +19,10 @@ from app.agent.providers import (
 from app.agent.utils import convert_jd_format
 from .providers.prompt.jd_prompt import PROMPT, SYSTEM, TASK
 from .providers.prompt.resume_review import PROMPT_REVIEW, SYSTEM_REVIEW
+from app.core.setting import settings
+
+RRF_K = 60
+RRF_CANDIDATE_MULTIPLIER = 3
 
 
 @dataclass
@@ -81,15 +88,153 @@ class JDService:
         model_embed_name = os.environ["EMBEDDING_MODEL"]
         self.model_embed = OllamaEmbeddingProvider(model_embed_name)
 
-        self.es_client = AsyncElasticsearch(hosts=[os.environ["ES_HOST"]])
-        self.jd_index_name = os.environ["ES_JD_INDEX"]
-        self.search_result_index_name = os.environ["ES_SEARCH_RESULT_INDEX"]
-        self.cv_index_name = os.environ["ES_CV_INDEX"]
+        self.es_client = AsyncElasticsearch(hosts=[settings.ES_HOST])
+        self.jd_index_name = settings.ES_JD_INDEX
+        self.search_result_index_name = settings.ES_SEARCH_RESULT_INDEX
+        self.cv_index_name = settings.ES_CV_INDEX
+        self._jd_index_ready = False
+        self._search_result_index_ready = False
         logger.info(f"Index name: {self.jd_index_name, self.cv_index_name}")
 
         self.timezone = timezone(timedelta(hours=8))
 
+    def _active_filters(self) -> list[dict]:
+        return [
+            {"bool": {"must_not": [{"term": {"is_deleted": True}}]}},
+            {
+                "bool": {
+                    "should": [
+                        {"term": {"is_active": True}},
+                        {"bool": {"must_not": [{"exists": {"field": "is_active"}}]}},
+                    ],
+                    "minimum_should_match": 1,
+                }
+            },
+        ]
+
+    def _hit_key(self, hit: dict) -> str | None:
+        source = hit.get("_source", {})
+        return hit.get("_id") or source.get("id")
+
+    def _rrf_fuse_hits(
+        self, hit_lists: list[list[dict]], size: int, rrf_k: int = RRF_K
+    ) -> list[dict]:
+        fused: dict[str, dict[str, Any]] = {}
+
+        for hit_list in hit_lists:
+            for rank, hit in enumerate(hit_list, start=1):
+                hit_key = self._hit_key(hit)
+                if not hit_key:
+                    continue
+
+                score = 1.0 / (rrf_k + rank)
+                current = fused.get(hit_key)
+                if current is None:
+                    fused[hit_key] = {"score": score, "hit": hit}
+                    continue
+
+                current["score"] += score
+                if hit.get("_score", 0.0) > current["hit"].get("_score", 0.0):
+                    current["hit"] = hit
+
+        ranked_hits = sorted(
+            fused.values(), key=lambda item: item["score"], reverse=True
+        )
+        results = []
+        for item in ranked_hits[:size]:
+            hit = dict(item["hit"])
+            hit["_score"] = item["score"]
+            hit["rrf_score"] = item["score"]
+            results.append(hit)
+        return results
+
+    def _jd_index_mapping(self, embedding_dims: int) -> dict:
+        return {
+            "settings": {"number_of_shards": 1, "number_of_replicas": 0},
+            "mappings": {
+                "properties": {
+                    "id": {"type": "keyword"},
+                    "jd_url": {"type": "keyword"},
+                    "content": {"type": "text"},
+                    "keywords": {"type": "text"},
+                    "job_name": {"type": "text"},
+                    "job_description": {"type": "text"},
+                    "minimum_years_of_experience": {"type": "float"},
+                    "required_skills": {"type": "text"},
+                    "embedding_vector": {
+                        "type": "dense_vector",
+                        "dims": embedding_dims,
+                        "index": False,
+                    },
+                    "created_at": {"type": "date"},
+                }
+            },
+        }
+
+    def _search_result_index_mapping(self) -> dict:
+        return {
+            "settings": {"number_of_shards": 1, "number_of_replicas": 0},
+            "mappings": {
+                "properties": {
+                    "jd_id": {"type": "keyword"},
+                    "top_cv_id": {"type": "keyword"},
+                    "scores": {"type": "float"},
+                    "strong_matches": {"type": "keyword"},
+                    "partial_matches": {"type": "keyword"},
+                    "missing_keywords": {"type": "keyword"},
+                    "summary": {"type": "text"},
+                }
+            },
+        }
+
+    async def _ensure_jd_index(self, embedding_dims: int) -> None:
+        if self._jd_index_ready:
+            return
+
+        exists = await self.es_client.indices.exists(index=self.jd_index_name)
+        if exists:
+            self._jd_index_ready = True
+            return
+
+        try:
+            await self.es_client.indices.create(
+                index=self.jd_index_name,
+                body=self._jd_index_mapping(embedding_dims),
+            )
+            logger.info(
+                f"Created Elasticsearch index {self.jd_index_name} with dims={embedding_dims}"
+            )
+        except ConflictError:
+            logger.info(f"Elasticsearch index {self.jd_index_name} already exists")
+
+        self._jd_index_ready = True
+
+    async def _ensure_search_result_index(self) -> None:
+        if self._search_result_index_ready:
+            return
+
+        exists = await self.es_client.indices.exists(index=self.search_result_index_name)
+        if exists:
+            self._search_result_index_ready = True
+            return
+
+        try:
+            await self.es_client.indices.create(
+                index=self.search_result_index_name,
+                body=self._search_result_index_mapping(),
+            )
+            logger.info(
+                f"Created Elasticsearch index {self.search_result_index_name}"
+            )
+        except ConflictError:
+            logger.info(
+                f"Elasticsearch index {self.search_result_index_name} already exists"
+            )
+
+        self._search_result_index_ready = True
+
     async def _store_jd(self, gen_res, emb_res, file_name, jd_id, jd_data):
+        await self._ensure_jd_index(len(emb_res))
         minimum_years_of_experience = gen_res.get("minimum_years_of_experience", "")
         if minimum_years_of_experience:
             match = re.search(r"\d+", str(minimum_years_of_experience))
@@ -115,6 +260,7 @@ class JDService:
     async def _store_search_result(
         self, jd_id: str, cv_top_k_review: list[MatcherData]
     ):
+        await self._ensure_search_result_index()
         top_cv_id = []
         scores = []
         strong_matches = []
@@ -143,18 +289,17 @@ class JDService:
 
     async def _get_search_result(self, jd_id):
         query = {"query": {"match": {"jd_id": jd_id}}}
-        response = await self.es_client.search(
-            index=self.search_result_index_name, body=query
-        )
+        try:
+            response = await self.es_client.search(
+                index=self.search_result_index_name, body=query
+            )
+        except NotFoundError:
+            logger.info(f"Index {self.search_result_index_name} does not exist")
+            return []
 
         return response["hits"]["hits"]
 
     async def _keywords_search(self, keywords, job_name, size=5):
-        # query = {
-        #     "_source": {"excludes": ["embedding_vector"]},
-        #     "size": size,
-        #     "query": {"match": {"keywords": keywords}},
-        # }
         query_content = job_name + keywords
         logger.info(f"Query content: {query_content}")
 
@@ -167,49 +312,74 @@ class JDService:
                         {
                             "multi_match": {
                                 "query": query_content,
-                                "fields": ["keywords", "desired_position^2"],
+                                "fields": [
+                                    "keywords",
+                                    "desired_position^2",
+                                    "full_name^1.5",
+                                    "canonical_cv_text",
+                                    "content",
+                                ],
                             }
                         }
                     ],
-                    "filter": [
-                        {"bool": {"must_not": [{"term": {"is_deleted": True}}]}}
-                    ],
+                    "filter": self._active_filters(),
                 }
             },
         }
-        response = await self.es_client.search(index=self.cv_index_name, body=query)
+        try:
+            response = await self.es_client.search(index=self.cv_index_name, body=query)
+        except NotFoundError:
+            logger.info(f"Index {self.cv_index_name} does not exist")
+            return []
 
         return response["hits"]["hits"]
 
-    async def _vectors_search(self, query_vector: list, size=5):
-        response = await self.es_client.search(
-            index=self.cv_index_name,
-            body={
-                "_source": {"excludes": ["embedding_vector"]},
-                "size": size,
-                "query": {
-                    "script_score": {
-                        "query": {"match_all": {}},
-                        "script": {
-                            "source": "cosineSimilarity(params.query_vector, 'embedding_vector') + 1.0",
-                            "params": {"query_vector": query_vector},
-                        },
-                    }
+    async def _vector_search(self, query_vector: list, size=5):
+        try:
+            response = await self.es_client.search(
+                index=self.cv_index_name,
+                body={
+                    "_source": {"excludes": ["embedding_vector"]},
+                    "size": size,
+                    "query": {
+                        "script_score": {
+                            "query": {"bool": {"filter": self._active_filters()}},
+                            "script": {
+                                "source": """
+                                    double score = cosineSimilarity(params.query_vector, 'embedding_vector');
+                                    if (Double.isNaN(score) || score < -1.0) {
+                                        return 0.0;
+                                    }
+                                    return score + 1.0;
+                                """,
+                                "params": {"query_vector": query_vector},
+                            },
+                        }
+                    },
                 },
-            },
-        )
+            )
+        except NotFoundError:
+            logger.info(f"Index {self.cv_index_name} does not exist")
+            return []
 
         return response["hits"]["hits"]
+
+    async def _vectors_search(self, query_vector: list, query_text: str = "", size=5):
+        candidate_size = max(size * RRF_CANDIDATE_MULTIPLIER, size)
+        lexical_hits, vector_hits = await asyncio.gather(
+            self._keywords_search(query_text, "", size=candidate_size)
+            if query_text
+            else asyncio.sleep(0, result=[]),
+            self._vector_search(query_vector, size=candidate_size),
+        )
+        return self._rrf_fuse_hits([lexical_hits, vector_hits], size=size)
 
     async def match(self, keywords, vector, job_name):
-        keywords_search_res = await self._keywords_search(keywords, job_name)
-        # vectors_search_res = await self._vectors_search(vector)
-
-        # cv_list = []
-        # for hit in vectors_search_res:
-        #     cv_list.append(hit)
-
-        return keywords_search_res
+        query_text = f"{job_name} {keywords}".strip()
+        hybrid_hits = await self._vectors_search(vector, query_text=query_text)
+        if hybrid_hits:
+            return hybrid_hits
+        return await self._keywords_search(keywords, job_name)
 
     async def review(
         self, jd_content, jd_keywords, cv_list: list[MatcherData]
@@ -224,7 +394,7 @@ class JDService:
                 extracted_resume_keywords=resume.keywords,
             )
 
-            gen_res = await self.model_gen("", prompt, SYSTEM_REVIEW)
+            gen_res, _ = await self.model_gen("", prompt, SYSTEM_REVIEW)
             resume.merge_model_result_and_cv_data_original(gen_res)
             results.append(resume)
 
@@ -271,7 +441,7 @@ class JDService:
             suffix = None
 
         data_converted = self.preprocess_data.convert_data(data, suffix)
-        gen_res = await self.model_gen(data_converted, prompt, SYSTEM)
+        gen_res, _ = await self.model_gen(data_converted, prompt, SYSTEM)
 
         # gen_res_format = convert_jd_format(gen_res)
         emb_result = await self.model_embed([data_converted], TASK, query=True)

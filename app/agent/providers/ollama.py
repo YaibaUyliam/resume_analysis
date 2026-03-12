@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import json
 import time
 import ollama
 import subprocess
 import os
+import re
 
 from loguru import logger
 from typing import Any, Dict, List, Optional
@@ -13,6 +16,63 @@ from .base import ExtractionProvider, EmbeddingProvider, remove_image_special
 
 
 # logger = logging.getLogger(__name__)
+
+
+def _simplify_model_name(model_name: str) -> str:
+    model_name = (model_name or "").lower()
+    if "/" in model_name:
+        model_name = model_name.split("/", 1)[1]
+    return re.sub(r"[^a-z0-9]+", "", model_name)
+
+
+def _pick_fallback_model(
+    requested_model: str, installed_models: list[str], embedding: bool
+) -> str:
+    if not installed_models:
+        raise GenerationError("No Ollama models are installed.")
+
+    simplified_requested = _simplify_model_name(requested_model)
+    for installed_model in installed_models:
+        simplified_installed = _simplify_model_name(installed_model)
+        if (
+            simplified_requested
+            and simplified_requested in simplified_installed
+            or simplified_installed in simplified_requested
+        ):
+            logger.warning(
+                f"Configured model '{requested_model}' not found. "
+                f"Using closest installed model '{installed_model}'."
+            )
+            return installed_model
+
+    if embedding:
+        embedding_candidates = [
+            model for model in installed_models if "embed" in model.lower()
+        ]
+        if embedding_candidates:
+            fallback_model = embedding_candidates[0]
+            logger.warning(
+                f"Configured embedding model '{requested_model}' not found. "
+                f"Using installed embedding model '{fallback_model}'."
+            )
+            return fallback_model
+    else:
+        generation_candidates = [
+            model for model in installed_models if "embed" not in model.lower()
+        ]
+        if generation_candidates:
+            fallback_model = generation_candidates[0]
+            logger.warning(
+                f"Configured generation model '{requested_model}' not found. "
+                f"Using installed generation model '{fallback_model}'."
+            )
+            return fallback_model
+
+    available_models = ", ".join(installed_models)
+    raise GenerationError(
+        f"Model '{requested_model}' has not been installed. "
+        f"Available Ollama models: {available_models}"
+    )
 
 
 class OllamaExtractionProvider(ExtractionProvider):
@@ -35,8 +95,9 @@ class OllamaExtractionProvider(ExtractionProvider):
         installed_ollama_models = [
             model_class.model for model_class in self._client.list().models
         ]
-        if model_name not in installed_ollama_models:
-            raise GenerationError("Model has not installed !!!")
+        self.model = _pick_fallback_model(
+            model_name, installed_ollama_models, embedding=False
+        )
 
     def _preprocess_data(self, resume_data: bytes | str, prompt: str):
         # converted_data = self.convert_data(resume_data, file_suffix)
@@ -129,8 +190,9 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         installed_ollama_models = [
             model_class.model for model_class in self._client.list().models
         ]
-        if self._model not in installed_ollama_models:
-            raise GenerationError("Model has not installed !!!")
+        self._model = _pick_fallback_model(
+            model_name, installed_ollama_models, embedding=True
+        )
 
     def _embed_sync(self, input_data: list[str], task: str, query: bool) -> str:
         sub_result = subprocess.run(

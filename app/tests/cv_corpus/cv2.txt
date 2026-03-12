@@ -1,0 +1,5 @@
+Trần B
+Email: b@example.com
+Phone: +84 955555555
+2 years Python/Node; limited Golang exposure; PostgreSQL & Docker basics.
+API integrations in small projects; Git. Based in HN.

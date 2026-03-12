@@ -9,7 +9,8 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - /mnt/newdisk/database/esdata:/usr/share/elasticsearch/data
+      # - /mnt/newdisk/database/esdata:/usr/share/elasticsearch/data
+      - ./.docker/esdata:/usr/share/elasticsearch/data
 
   kibana:
     image: docker.elastic.co/kibana/kibana:9.1.4

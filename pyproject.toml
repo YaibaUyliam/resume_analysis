@@ -4,6 +4,7 @@ version = "1.0.0"
 description = "Resume Analysis Backend API"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp",
     "aiosqlite==0.21.0",
     "annotated-types==0.7.0",
     "anyio==4.9.0",

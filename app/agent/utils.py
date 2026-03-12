@@ -1,7 +1,14 @@
+from __future__ import annotations
+
 import json
 import re
 import os
 import datetime
+import hashlib
+import unicodedata
+
+from difflib import SequenceMatcher
+from urllib.parse import urlparse
 
 
 def convert_duration_to_dates(duration: str):
@@ -136,6 +143,315 @@ def parse_array(value):
     return []
 
 
+def normalize_whitespace(value: str | None) -> str:
+    if not value:
+        return ""
+    return re.sub(r"\s+", " ", str(value)).strip()
+
+
+def strip_accents(value: str | None) -> str:
+    value = normalize_whitespace(value)
+    if not value:
+        return ""
+    normalized = unicodedata.normalize("NFKD", value)
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
+
+def normalize_text(value: str | None) -> str:
+    value = strip_accents(value).lower()
+    value = re.sub(r"[^a-z0-9\s]", " ", value)
+    return normalize_whitespace(value)
+
+
+def normalize_email(value: str | None) -> str:
+    value = normalize_whitespace(value).lower()
+    if not value or "@" not in value:
+        return ""
+    return value
+
+
+def normalize_phone(value: str | None) -> str:
+    digits = re.sub(r"\D", "", value or "")
+    if digits.startswith("84") and len(digits) > 9:
+        digits = "0" + digits[2:]
+    return digits
+
+
+def normalize_profile_handle(value: str | None, domains: tuple[str, ...]) -> str:
+    raw = normalize_whitespace(value).lower()
+    if not raw:
+        return ""
+
+    parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+    host = parsed.netloc.lower().replace("www.", "")
+    path_segments = [segment for segment in parsed.path.strip("/").split("/") if segment]
+    if host and any(domain in host for domain in domains):
+        if "linkedin.com" in host and path_segments:
+            return path_segments[-1].lower()
+        if path_segments:
+            return path_segments[0].lower()
+        return ""
+
+    if "/" not in raw and " " not in raw:
+        return raw.strip("@")
+    return ""
+
+
+def normalize_linkedin(value: str | None) -> str:
+    return normalize_profile_handle(value, ("linkedin.com",))
+
+
+def normalize_github(value: str | None) -> str:
+    return normalize_profile_handle(value, ("github.com",))
+
+
+def normalize_name(value: str | None) -> str:
+    return normalize_text(value)
+
+
+def normalize_location(value: str | None) -> str:
+    return normalize_text(value)
+
+
+def similarity_ratio(value_a: str | None, value_b: str | None) -> float:
+    norm_a = normalize_text(value_a)
+    norm_b = normalize_text(value_b)
+    if not norm_a or not norm_b:
+        return 0.0
+    return SequenceMatcher(None, norm_a, norm_b).ratio()
+
+
+def jaccard_similarity(values_a, values_b) -> float:
+    set_a = {normalize_text(v) for v in values_a or [] if normalize_text(v)}
+    set_b = {normalize_text(v) for v in values_b or [] if normalize_text(v)}
+    if not set_a or not set_b:
+        return 0.0
+    union = set_a | set_b
+    if not union:
+        return 0.0
+    return len(set_a & set_b) / len(union)
+
+
+def parse_skills(info: dict) -> list[str]:
+    skills = []
+    for skill in info.get("skills", []):
+        if isinstance(skill, dict):
+            skill_name = normalize_whitespace(skill.get("skill_name"))
+            if skill_name:
+                skills.append(skill_name)
+    return skills
+
+
+def get_latest_experience_item(info: dict) -> dict:
+    for experience in info.get("experience", []):
+        if isinstance(experience, dict) and (
+            experience.get("company") or experience.get("position")
+        ):
+            return experience
+    return {}
+
+
+def get_latest_education_item(info: dict) -> dict:
+    for education in info.get("education", []):
+        if isinstance(education, dict) and (
+            education.get("school_name") or education.get("major")
+        ):
+            return education
+    return {}
+
+
+def build_canonical_cv_text(info: dict) -> str:
+    personal_info = info.get("personal_info", {})
+    latest_experience = get_latest_experience_item(info)
+    latest_education = get_latest_education_item(info)
+    fields = [
+        personal_info.get("full_name", ""),
+        personal_info.get("email", ""),
+        personal_info.get("phone_number", ""),
+        personal_info.get("current_location", ""),
+        personal_info.get("desired_position", ""),
+        latest_education.get("school_name", ""),
+        latest_education.get("major", ""),
+        latest_experience.get("company", ""),
+        latest_experience.get("position", ""),
+        ", ".join(parse_skills(info)),
+        ", ".join(info.get("extracted_keywords", [])),
+    ]
+    return "\n".join(value for value in fields if normalize_whitespace(value))
+
+
+def hash_text(value: str | None) -> str:
+    value = value or ""
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def build_resume_identity(info: dict, resume_content: str | list[str] | None = None) -> dict:
+    personal_info = info.get("personal_info", {})
+    latest_experience = get_latest_experience_item(info)
+    latest_education = get_latest_education_item(info)
+    canonical_cv_text = build_canonical_cv_text(info)
+    resume_content_text = (
+        "\n".join(resume_content)
+        if isinstance(resume_content, list)
+        else (resume_content or "")
+    )
+
+    return {
+        "full_name": personal_info.get("full_name", ""),
+        "full_name_normalized": normalize_name(personal_info.get("full_name")),
+        "email": personal_info.get("email", ""),
+        "email_normalized": normalize_email(personal_info.get("email")),
+        "phone_number": personal_info.get("phone_number", ""),
+        "phone_normalized": normalize_phone(personal_info.get("phone_number")),
+        "linkedin_url": personal_info.get("linkedin_url", ""),
+        "linkedin_normalized": normalize_linkedin(personal_info.get("linkedin_url")),
+        "github_url": personal_info.get("github_url", ""),
+        "github_normalized": normalize_github(personal_info.get("github_url")),
+        "year_of_birth": get_yob(personal_info),
+        "current_location": personal_info.get("current_location", ""),
+        "location_normalized": normalize_location(
+            personal_info.get("current_location")
+        ),
+        "desired_position": personal_info.get("desired_position", ""),
+        "desired_positions": parse_array(personal_info.get("desired_position", "")),
+        "years_of_experience": parse_years_of_experience(
+            personal_info.get("year_of_experience", "")
+        ),
+        "latest_company": latest_experience.get("company", ""),
+        "latest_company_normalized": normalize_text(latest_experience.get("company")),
+        "latest_position": latest_experience.get("position", ""),
+        "latest_position_normalized": normalize_text(latest_experience.get("position")),
+        "latest_school": latest_education.get("school_name", ""),
+        "latest_school_normalized": normalize_text(latest_education.get("school_name")),
+        "latest_degree": latest_education.get("degree", ""),
+        "latest_degree_normalized": normalize_text(latest_education.get("degree")),
+        "skills": parse_skills(info),
+        "keywords": info.get("extracted_keywords", []),
+        "canonical_cv_text": canonical_cv_text,
+        "content_hash": hash_text(normalize_whitespace(resume_content_text)),
+        "canonical_hash": hash_text(normalize_whitespace(canonical_cv_text)),
+    }
+
+
+def calculate_experience_yob_score(candidate_a: dict, candidate_b: dict) -> float:
+    score = 0.0
+    matched = 0
+
+    yob_a = candidate_a.get("year_of_birth")
+    yob_b = candidate_b.get("year_of_birth")
+    if yob_a and yob_b:
+        matched += 1
+        score += 1.0 if yob_a == yob_b else 0.0
+
+    years_a = candidate_a.get("years_of_experience")
+    years_b = candidate_b.get("years_of_experience")
+    if years_a is not None and years_b is not None:
+        matched += 1
+        diff = abs(years_a - years_b)
+        if diff == 0:
+            score += 1.0
+        elif diff <= 1:
+            score += 0.8
+        elif diff <= 2:
+            score += 0.5
+
+    if matched == 0:
+        return 0.0
+    return score / matched
+
+
+def build_structured_duplicate_score(
+    incoming: dict, existing: dict, vector_similarity: float = 0.0
+) -> dict:
+    breakdown = {
+        "name": similarity_ratio(
+            incoming.get("full_name_normalized"), existing.get("full_name_normalized")
+        ),
+        "company_position": (
+            similarity_ratio(
+                incoming.get("latest_company_normalized"),
+                existing.get("latest_company_normalized"),
+            )
+            + similarity_ratio(
+                incoming.get("latest_position_normalized"),
+                existing.get("latest_position_normalized"),
+            )
+        )
+        / 2,
+        "school_degree": (
+            similarity_ratio(
+                incoming.get("latest_school_normalized"),
+                existing.get("latest_school_normalized"),
+            )
+            + similarity_ratio(
+                incoming.get("latest_degree_normalized"),
+                existing.get("latest_degree_normalized"),
+            )
+        )
+        / 2,
+        "location": similarity_ratio(
+            incoming.get("location_normalized"), existing.get("location_normalized")
+        ),
+        "skills": jaccard_similarity(
+            incoming.get("skills", []), existing.get("skills", [])
+        ),
+        "experience_yob": calculate_experience_yob_score(incoming, existing),
+        "vector": max(0.0, vector_similarity),
+    }
+    weights = {
+        "name": 0.35,
+        "company_position": 0.20,
+        "school_degree": 0.10,
+        "location": 0.10,
+        "skills": 0.15,
+        "experience_yob": 0.10,
+    }
+    score = sum(breakdown[key] * weights[key] for key in weights)
+    hybrid_score = round((score * 0.8) + (breakdown["vector"] * 0.2), 4)
+    return {
+        "score": hybrid_score,
+        "score_without_vector": round(score, 4),
+        "vector_similarity": round(breakdown["vector"], 4),
+        "breakdown": {key: round(value, 4) for key, value in breakdown.items()},
+    }
+
+
+def compare_resume_versions(incoming: dict, existing: dict) -> dict:
+    if incoming.get("content_hash") and incoming.get("content_hash") == existing.get(
+        "content_hash"
+    ):
+        return {
+            "same_version": True,
+            "version_similarity": 1.0,
+            "reason": "content_hash_match",
+        }
+
+    canonical_similarity = similarity_ratio(
+        incoming.get("canonical_cv_text"), existing.get("canonical_cv_text")
+    )
+    skill_similarity = jaccard_similarity(
+        incoming.get("skills", []), existing.get("skills", [])
+    )
+    company_similarity = similarity_ratio(
+        incoming.get("latest_company_normalized"),
+        existing.get("latest_company_normalized"),
+    )
+    position_similarity = similarity_ratio(
+        incoming.get("latest_position_normalized"),
+        existing.get("latest_position_normalized"),
+    )
+    same_version = canonical_similarity >= 0.995 and (
+        skill_similarity >= 0.95
+        and company_similarity >= 0.95
+        and position_similarity >= 0.95
+    )
+    return {
+        "same_version": same_version,
+        "version_similarity": round(canonical_similarity, 4),
+        "reason": "canonical_similarity",
+    }
+
+
 def get_age(info: dict) -> int | None:
     age = info.get("age")
     if age:
@@ -243,7 +559,7 @@ def convert_resume_format(info):
         startDate, endDate = convert_duration_to_dates(e.get("duration", ""))
         company = (e.get("company") or "").strip()
         position = (e.get("position") or "").strip()
-        jobDescription = (e.get("job_description") or "").strip
+        jobDescription = (e.get("job_description") or "").strip()
         if not company and not position and not startDate and not endDate and not jobDescription:
             continue
         experiences.append(
