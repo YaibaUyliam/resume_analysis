@@ -1,0 +1,10 @@
+{
+  "concurrency": 1,
+  "total_test_time": 590.72,
+  "throughput_req_per_sec": 0.01,
+  "avg_latency": 118.14,
+  "p50_latency": 118.55,
+  "p95_latency": 189.69,
+  "avg_total_tokens": 4266.4,
+  "avg_tokens_per_sec": 14.9
+}

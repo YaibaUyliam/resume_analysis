@@ -14,18 +14,18 @@ if os.environ.get("APP_ENV") != "production":
 
 
 CONCURRENCY = 1
-MAX_REQUEST = 2
+MAX_REQUEST = 5
 LOG_FILE = "benchmark_result.json"
 
-cv_data_path = "/home/yaiba/project/resume_analysis/data/CV_data"
+cv_data_path = r"C:\Users\p-CPLinhlee\AppData\Local\Linhlee\linhtinh\CV_data_test"
 
 cv_data_list = glob.glob(cv_data_path + "/*")
 cv_data_list = cv_data_list[:MAX_REQUEST]
 total_request = len(cv_data_list)
 print("Total requests:", total_request)
 
-extract_api_url = f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/extract"
-
+# extract_api_url = f"http://0.0.0.0:{os.environ['PORT']}/api/resumes/extract"
+extract_api_url = "http://16.163.183.185:9001/api/resumes/extract"
 
 def request_model(file_path):
     files = [

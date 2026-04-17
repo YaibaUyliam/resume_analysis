@@ -1,0 +1,5 @@
+{"file": "benma.pdf", "latency": 96.12808680534363, "prompt_tokens": 1516, "output_tokens": 1201, "total_tokens": 2717, "prompt_duration": 1555299190, "generation_duration": 74618248801, "tokens_per_sec": 16.095258456184848}
+{"file": "CJ.pdf", "latency": 189.68661856651306, "prompt_tokens": 2748, "output_tokens": 2328, "total_tokens": 5076, "prompt_duration": 1107001561, "generation_duration": 160678985869, "tokens_per_sec": 14.488515641354592}
+{"file": "CV0000015.docx", "latency": 142.0437879562378, "prompt_tokens": 3930, "output_tokens": 1827, "total_tokens": 5757, "prompt_duration": 1651696454, "generation_duration": 128773524557, "tokens_per_sec": 14.187698956638414}
+{"file": "HGY.docx", "latency": 118.54934811592102, "prompt_tokens": 4672, "output_tokens": 1450, "total_tokens": 6122, "prompt_duration": 979088570, "generation_duration": 104142076066, "tokens_per_sec": 13.92328686707823}
+{"file": "HJC.docx", "latency": 44.28298377990723, "prompt_tokens": 1028, "output_tokens": 632, "total_tokens": 1660, "prompt_duration": 647106785, "generation_duration": 40022810337, "tokens_per_sec": 15.790995052032445}
